@@ -181,36 +181,40 @@ export function SearchView({
 
 	return (
 		<div className="z-10 w-full max-w-7xl container space-y-4">
-			<Heading className="my-4 text-center">
+			<Heading level="h1" className="my-4 text-center p-4">
 				Encontre seu Pet (Canoas RS)
 			</Heading>
-			<div>
+			<div className="flex justify-center">
 				<div className="flex flex-wrap gap-2">
-					{Object.entries(filters).map((filterValue) => {
-						const [fieldName, allValues] = filterValue as [
-							FilterableField,
-							Set<string>
-						];
+					{Object.entries(filters)
+						.filter((v) => v[1].size > 1)
+						.map((filterValue) => {
+							const [fieldName, allValues] =
+								filterValue as [
+									FilterableField,
+									Set<string>
+								];
 
-						console.log("allValues", Array.from(allValues));
-						return (
-							<div key={fieldName}>
-								<p>{LABEL_VALUES[fieldName]}</p>
-								<ComboBox
-									onSelect={handleSelectedValues(
-										fieldName
-									)}
-									selectedValues={
-										selectedFilters?.[
+							return (
+								<div key={fieldName}>
+									{/* <p>{LABEL_VALUES[fieldName]}</p> */}
+									<ComboBox
+										onSelect={handleSelectedValues(
 											fieldName
-										] || new Set()
-									}
-									prompt="Selecione"
-									values={Array.from(allValues)}
-								/>
-							</div>
-						);
-					})}
+										)}
+										selectedValues={
+											selectedFilters?.[
+												fieldName
+											] || new Set()
+										}
+										prompt={
+											LABEL_VALUES[fieldName]
+										}
+										values={Array.from(allValues)}
+									/>
+								</div>
+							);
+						})}
 				</div>
 			</div>
 			<div>
@@ -218,12 +222,12 @@ export function SearchView({
 					{results.map((item) => {
 						const pictures = item.fields.pictures;
 
-						const firstPic = pictures[0] as Asset;
+						const firstPic = pictures?.[0] as Asset;
 						console.log("item", item);
 						return (
 							<div
 								key={item.sys.id}
-								className={`flex flex-col rounded-lg shadow-md overflow-hidden`}
+								className={`flex flex-col rounded-lg shadow-md overflow-hidden bg-white`}
 							>
 								{firstPic && (
 									<Image

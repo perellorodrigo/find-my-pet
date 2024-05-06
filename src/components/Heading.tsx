@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 
 const HEADING_CLASSES = {
 	// class="
-	h1: `text-2xl font-semibold`,
+	h1: `text-3xl font-semibold leading-relaxed tracking-wide`,
 	h2: "text-xl",
 	h3: "text-lg",
 	h4: "text-lg",
@@ -17,13 +17,12 @@ type HeadingProps = JSX.IntrinsicElements[keyof typeof HEADING_CLASSES] & {
 
 const Heading = ({ children, level, ...props }: HeadingProps) => {
 	const HeadingComponent = level || "h1";
-	const textColor = `text-neutral-700`;
 
 	return (
 		<HeadingComponent
 			className={cn(
+				"text-neutral-800",
 				HEADING_CLASSES[HeadingComponent],
-				textColor,
 				props.className
 			)}
 		>
