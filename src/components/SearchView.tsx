@@ -21,7 +21,6 @@ import {
 	Options as RichTextOptions,
 } from "@contentful/rich-text-react-renderer";
 import { BLOCKS, Document } from "@contentful/rich-text-types";
-import { cn } from "@/lib/utils";
 
 const LABEL_VALUES: Record<string, string> = {
 	breed: "Raça",
@@ -31,22 +30,22 @@ const LABEL_VALUES: Record<string, string> = {
 	color: "Cor",
 } satisfies Record<FilterableField, string>;
 
-// function CardInfo({
-// 	label,
-// 	value,
-// }: PropsWithChildren<{
-// 	label: string;
-// 	value: string;
-// }>) {
-// 	return (
-// 		<div className="inline-flex items-center">
-// 			<p className="text-sm break-all font-light text-primary">
-// 				<span className="font-semibold">{label}: </span>
-// 				{value}
-// 			</p>
-// 		</div>
-// 	);
-// }
+function CardInfo({
+	label,
+	value,
+}: PropsWithChildren<{
+	label: string;
+	value: string;
+}>) {
+	return (
+		<div className="inline-flex items-center">
+			<p className="text-sm break-all font-light text-primary">
+				<span className="font-semibold">{label}: </span>
+				{value}
+			</p>
+		</div>
+	);
+}
 
 const options: RichTextOptions = {
 	renderNode: {
@@ -85,27 +84,27 @@ function RichTextRenderer({
 	);
 }
 
-// function CardBasicInfo({
-// 	item,
-// }: {
-// 	item: Entry<PetSkeleton, undefined, string>;
-// }) {
-// 	return filterableFields.map((field) => {
-// 		const value = item.fields[field];
+function CardBasicInfo({
+	item,
+}: {
+	item: Entry<PetSkeleton, undefined, string>;
+}) {
+	return filterableFields.map((field) => {
+		const value = item.fields[field];
 
-// 		if (!value) {
-// 			return null;
-// 		}
+		if (!value) {
+			return null;
+		}
 
-// 		return (
-// 			<CardInfo
-// 				key={field}
-// 				label={LABEL_VALUES[field]}
-// 				value={value}
-// 			/>
-// 		);
-// 	});
-// }
+		return (
+			<CardInfo
+				key={field}
+				label={LABEL_VALUES[field]}
+				value={value}
+			/>
+		);
+	});
+}
 
 export function SearchView({
 	initialResults,
@@ -238,7 +237,7 @@ export function SearchView({
 
 								<div className="p-4 flex flex-col space-y-2 justify-between flex-1">
 									<div className="flex flex-col">
-										{/* <CardBasicInfo item={item} /> */}
+										<CardBasicInfo item={item} />
 
 										<RichTextRenderer
 											content={
