@@ -1,32 +1,27 @@
 "use client";
-import { HTMLProps, PropsWithChildren, useEffect, useState } from "react";
+import {
+	HTMLProps,
+	PropsWithChildren,
+	PropsWithoutRef,
+	useEffect,
+	useState,
+} from "react";
 import Heading from "./Heading";
 import { ComboBox } from "./ComboBox";
 import Image from "next/image";
-import type { Asset, EntryCollection } from "contentful";
+import type { Asset, Entry, EntryCollection } from "contentful";
 import {
 	filterableFields,
 	type FilterableField,
 	type PetSkeleton,
 } from "@/lib/types";
 import getPets from "@/actions/getPets";
-
-function CardInfo({
-	label,
-	value,
-}: PropsWithChildren<{
-	label: string;
-	value: string;
-}>) {
-	return (
-		<div className="inline-flex items-center">
-			<p className="text-sm break-all font-light text-primary">
-				<span className="font-semibold">{label}: </span>
-				{value}
-			</p>
-		</div>
-	);
-}
+import {
+	documentToReactComponents,
+	Options as RichTextOptions,
+} from "@contentful/rich-text-react-renderer";
+import { BLOCKS, Document } from "@contentful/rich-text-types";
+import { cn } from "@/lib/utils";
 
 const LABEL_VALUES: Record<string, string> = {
 	breed: "Raça",
@@ -35,6 +30,82 @@ const LABEL_VALUES: Record<string, string> = {
 	gender: "Sexo",
 	color: "Cor",
 } satisfies Record<FilterableField, string>;
+
+// function CardInfo({
+// 	label,
+// 	value,
+// }: PropsWithChildren<{
+// 	label: string;
+// 	value: string;
+// }>) {
+// 	return (
+// 		<div className="inline-flex items-center">
+// 			<p className="text-sm break-all font-light text-primary">
+// 				<span className="font-semibold">{label}: </span>
+// 				{value}
+// 			</p>
+// 		</div>
+// 	);
+// }
+
+const options: RichTextOptions = {
+	renderNode: {
+		[BLOCKS.HEADING_1]: (_, children) => (
+			<Heading level="h1">{children}</Heading>
+		),
+		[BLOCKS.HEADING_2]: (_, children) => (
+			<Heading level="h2">{children}</Heading>
+		),
+		[BLOCKS.HEADING_3]: (_, children) => (
+			<Heading level="h3">{children}</Heading>
+		),
+		[BLOCKS.HEADING_4]: (_, children) => (
+			<Heading level="h4">{children}</Heading>
+		),
+		[BLOCKS.HEADING_5]: (_, children) => (
+			<Heading level="h5">{children}</Heading>
+		),
+		[BLOCKS.HEADING_6]: (_, children) => (
+			<Heading level="h6">{children}</Heading>
+		),
+		[BLOCKS.PARAGRAPH]: (node, children) => (
+			<p className="text-neutral-600 text-sm">{children}</p>
+		),
+	},
+};
+
+function RichTextRenderer({
+	content,
+	className,
+}: PropsWithoutRef<{ content: Document; className: string }>) {
+	return (
+		<div className={className}>
+			{documentToReactComponents(content, options)}
+		</div>
+	);
+}
+
+// function CardBasicInfo({
+// 	item,
+// }: {
+// 	item: Entry<PetSkeleton, undefined, string>;
+// }) {
+// 	return filterableFields.map((field) => {
+// 		const value = item.fields[field];
+
+// 		if (!value) {
+// 			return null;
+// 		}
+
+// 		return (
+// 			<CardInfo
+// 				key={field}
+// 				label={LABEL_VALUES[field]}
+// 				value={value}
+// 			/>
+// 		);
+// 	});
+// }
 
 export function SearchView({
 	initialResults,
@@ -149,7 +220,7 @@ export function SearchView({
 						const pictures = item.fields.pictures;
 
 						const firstPic = pictures[0] as Asset;
-
+						console.log("item", item);
 						return (
 							<div
 								key={item.sys.id}
@@ -165,29 +236,20 @@ export function SearchView({
 									/>
 								)}
 
-								<div className="p-4 flex flex-col">
-									{filterableFields.map((field) => {
-										const value =
-											item.fields[field];
+								<div className="p-4 flex flex-col space-y-2 justify-between flex-1">
+									<div className="flex flex-col">
+										{/* <CardBasicInfo item={item} /> */}
 
-										if (!value) {
-											return null;
-										}
+										<RichTextRenderer
+											content={
+												item.fields
+													.description
+											}
+											className="mt-2 space-y-1"
+										/>
+									</div>
 
-										return (
-											<CardInfo
-												key={field}
-												label={
-													LABEL_VALUES[
-														field
-													]
-												}
-												value={value}
-											/>
-										);
-									})}
-
-									<p className="text-xs text-neutral-600 mt-4">
+									<p className="text-xs text-neutral-600 pt-6">
 										POST ID: {item.sys.id}
 									</p>
 								</div>
