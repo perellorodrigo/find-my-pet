@@ -3,12 +3,14 @@
 import { FilterableField, PetSkeleton } from "@/lib/types";
 import { createClient } from "contentful";
 
+export type Filter = {
+	[key in FilterableField]?: string[];
+};
+
 export type GetPetParams = {
 	page?: number;
 	results?: number;
-	filters?: {
-		[key in FilterableField]?: string[];
-	};
+	filters?: Filter;
 };
 
 if (
@@ -29,8 +31,6 @@ async function getPets({ filters }: GetPetParams) {
 	const getFilterValue = (arr: string[] | undefined) => {
 		return Array.isArray(arr) && arr.length > 0 ? arr : undefined;
 	};
-
-	console.log("filters", filters?.species);
 
 	const results = await client.getEntries<PetSkeleton>({
 		content_type: "pet",
