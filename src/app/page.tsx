@@ -1,6 +1,7 @@
 import { SearchView } from "@/components/SearchView";
 import getPets, { Filter } from "@/actions/getPets";
 import { filterableFields } from "@/lib/types";
+import { getFiltersFromResults } from "@/lib/utils";
 
 export default async function Home({
 	searchParams,
@@ -29,42 +30,42 @@ export default async function Home({
 		return filteredResults;
 	})();
 
-	const [allResults, results] = await Promise.all([
+	let [allResults, results] = await Promise.all([
 		allResultsPromise,
 		resultsPromise,
 	]);
 
-	const allFilters = allResults.items.reduce<Record<string, string[]>>(
-		(acc, item) => {
-			const fields = item.fields;
+	// Need to have a copy so it doesnt get mutated if points to same reference as allResults
+	const initialResults = {
+		items: [...results.items],
+		total: results.total,
+		limit: results.limit,
+		skip: results.skip,
+	};
 
-			for (const field of filterableFields) {
-				const value = fields[field];
+	// TODO: Look into caching this
+	let pageCount = 0;
+	while (allResults.items.length < allResults.total || pageCount === 10) {
+		const nextResults = await getPets({
+			skip: allResults.skip + allResults.limit,
+		});
 
-				if (!value) {
-					continue;
-				}
+		allResults.items = allResults.items.concat(nextResults.items);
+		allResults.total = nextResults.total;
+		allResults.skip = nextResults.skip;
+		allResults.limit = nextResults.limit;
+		pageCount++;
+	}
 
-				if (!acc[field]) {
-					acc[field] = [value];
-					continue;
-				}
-
-				if (!acc[field].includes(value)) acc[field].push(value);
-			}
-
-			return acc;
-		},
-		{}
-	);
+	const allFilters = getFiltersFromResults(allResults.items);
 
 	return (
 		<main className="flex min-h-screen flex-col items-center justify-between">
 			<SearchView
-				total={results.total}
-				limit={results.limit}
-				skip={results.skip}
-				initialResults={results.items}
+				total={initialResults.total}
+				limit={initialResults.limit}
+				skip={initialResults.skip}
+				initialResults={initialResults.items}
 				allFilters={allFilters}
 			/>
 		</main>
