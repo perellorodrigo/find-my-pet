@@ -8,8 +8,7 @@ export type Filter = {
 };
 
 export type GetPetParams = {
-	page?: number;
-	results?: number;
+	skip?: number;
 	filters?: Filter;
 };
 
@@ -27,7 +26,7 @@ const client = createClient({
 	accessToken: process.env.CONTENTFUL_DELIVERY_API_KEY,
 });
 
-async function getPets({ filters }: GetPetParams) {
+async function getPets({ filters, skip }: GetPetParams) {
 	const getFilterValue = (arr: string[] | undefined) => {
 		return Array.isArray(arr) && arr.length > 0 ? arr : undefined;
 	};
@@ -39,10 +38,14 @@ async function getPets({ filters }: GetPetParams) {
 		"fields.breed[in]": getFilterValue(filters?.breed),
 		"fields.size[in]": getFilterValue(filters?.size),
 		"fields.color[in]": getFilterValue(filters?.color),
+		skip: skip || 0,
 	});
 
 	return {
 		items: results.items,
+		total: results.total,
+		limit: results.limit,
+		skip: results.skip,
 	};
 }
 

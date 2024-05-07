@@ -61,6 +61,9 @@ export default async function Home({
 	return (
 		<main className="flex min-h-screen flex-col items-center justify-between">
 			<SearchView
+				total={results.total}
+				limit={results.limit}
+				skip={results.skip}
 				initialResults={results.items}
 				allFilters={allFilters}
 			/>

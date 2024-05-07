@@ -110,13 +110,29 @@ function CardBasicInfo({
 	});
 }
 
+function getFiltersForSearch(filters: Record<string, Set<string>>) {
+	return Object.entries(filters).reduce<{
+		[key in FilterableField]?: string[];
+	}>((acc, [key, value]) => {
+		acc[key as FilterableField] = Array.from(value);
+		return acc;
+	}, {});
+}
+
 export function SearchView({
+	total,
+	limit,
 	initialResults,
 	allFilters,
 }: {
+	total: number;
+	limit: number;
+	skip: number;
 	initialResults: EntryCollection<PetSkeleton, undefined, string>["items"];
 	allFilters: Record<string, string[]>;
 }) {
+	const [skip, setSkip] = useState(0);
+	const [totalResults, setTotalResults] = useState(total);
 	const [results, setResults] = useState(initialResults);
 
 	const searchParams = useSearchParams();
@@ -151,16 +167,25 @@ export function SearchView({
 			setSelectedFilters(newFilters);
 
 			getPets({
-				filters: Object.entries(newFilters).reduce<{
-					[key in FilterableField]?: string[];
-				}>((acc, [key, value]) => {
-					acc[key as FilterableField] = Array.from(value);
-					return acc;
-				}, {}),
+				filters: getFiltersForSearch(newFilters),
 			}).then((res) => {
+				// This resets the skip to 0
 				setResults(res.items);
+				setSkip(res.skip);
+				setTotalResults(res.total);
 			});
 		};
+
+	const handleLoadMore = () => {
+		getPets({
+			filters: getFiltersForSearch(selectedFilters),
+			skip: skip + limit,
+		}).then((res) => {
+			setResults([...results, ...res.items]);
+			setSkip(res.skip);
+			setTotalResults(res.total);
+		});
+	};
 
 	const handleCopySearch: MouseEventHandler<HTMLButtonElement> = (e) => {
 		e.preventDefault();
@@ -241,7 +266,6 @@ export function SearchView({
 										alt=""
 										width={300}
 										height={200}
-										objectFit="contain"
 									/>
 								)}
 
@@ -265,6 +289,19 @@ export function SearchView({
 							</div>
 						);
 					})}
+				</div>
+
+				<div className="flex flex-col justify-center items-center w-full mt-4 space-y-2">
+					<p>
+						{results.length} de {totalResults} resultados
+					</p>
+					<Button
+						onClick={handleLoadMore}
+						variant={"outline"}
+						disabled={results.length === totalResults}
+					>
+						Carregar mais
+					</Button>
 				</div>
 			</div>
 		</div>
