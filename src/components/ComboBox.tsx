@@ -116,8 +116,12 @@ export function ComboBox({
 	return (
 		<Drawer open={open} onOpenChange={setOpen}>
 			<DrawerTrigger asChild>
-				<Button variant="outline" className="justify-start">
+				<Button
+					variant="outline"
+					className="justify-between w-full"
+				>
 					{label}
+					<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 				</Button>
 			</DrawerTrigger>
 			<DrawerContent>
