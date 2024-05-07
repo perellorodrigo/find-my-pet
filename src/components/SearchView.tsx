@@ -1,11 +1,14 @@
 "use client";
 import {
+	ChangeEventHandler,
 	HTMLProps,
 	MouseEventHandler,
 	PropsWithChildren,
 	PropsWithoutRef,
+	useCallback,
 	useEffect,
 	useMemo,
+	useRef,
 	useState,
 	useTransition,
 } from "react";
@@ -27,8 +30,9 @@ import { BLOCKS, Document } from "@contentful/rich-text-types";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "./ui/button";
 import { getFiltersFromResults } from "@/lib/utils";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { Input } from "./ui/input";
 // import { Input } from "./ui/input";
 
 const LABEL_VALUES: Record<string, string> = {
@@ -124,6 +128,14 @@ function getFiltersForSearch(filters: Record<string, Set<string>>) {
 	}, {});
 }
 
+const debounce = <T extends (...args: any[]) => void>(fn: T, ms = 250) => {
+	let timeoutId: ReturnType<typeof setTimeout>;
+	return ((...args: any[]) => {
+		clearTimeout(timeoutId);
+		timeoutId = setTimeout(() => fn(...args), ms);
+	}) as T;
+};
+
 export function SearchView({
 	total,
 	limit,
@@ -136,11 +148,11 @@ export function SearchView({
 	initialResults: EntryCollection<PetSkeleton, undefined, string>["items"];
 	allFilters: Record<string, string[]>;
 }) {
-	// const [searchTerm, setSearchTerm] = useState("");
+	const [searchTerm, setSearchTerm] = useState("");
+	const [isLoading, setIsLoading] = useState(false);
 	const [skip, setSkip] = useState(0);
 	const [totalResults, setTotalResults] = useState(total);
 	const [results, setResults] = useState(initialResults);
-	const [isPending, startTransition] = useTransition();
 
 	const searchParams = useSearchParams();
 	const { toast } = useToast();
@@ -156,6 +168,23 @@ export function SearchView({
 	});
 
 	const fullPath = usePathname();
+
+	const debounceSearch = useCallback(
+		debounce((searchQuery: string, filters: Filter) => {
+			setIsLoading(true);
+
+			getPets({
+				filters: filters,
+				searchTerm: searchQuery,
+			}).then((res) => {
+				setResults(res.items);
+				setSkip(res.skip);
+				setTotalResults(res.total);
+				setIsLoading(false);
+			});
+		}),
+		[]
+	);
 
 	const handleSelectedValues =
 		(fieldName: FilterableField) => (value: string) => {
@@ -173,16 +202,15 @@ export function SearchView({
 			};
 
 			setSelectedFilters(newFilters);
-
-			getPets({
-				filters: getFiltersForSearch(newFilters),
-			}).then((res) => {
-				// This resets the skip to 0
-				setResults(res.items);
-				setSkip(res.skip);
-				setTotalResults(res.total);
-			});
+			debounceSearch(searchTerm, getFiltersForSearch(newFilters));
 		};
+
+	const handleSearch: ChangeEventHandler<HTMLInputElement> = (e) => {
+		// This is an instant UI change
+		setSearchTerm(e.target.value);
+
+		debounceSearch(e.target.value, getFiltersForSearch(selectedFilters));
+	};
 
 	const handleLoadMore = () => {
 		getPets({
@@ -194,17 +222,6 @@ export function SearchView({
 			setTotalResults(res.total);
 		});
 	};
-
-	// const handleSearch = () => {
-	// 	getPets({
-	// 		filters: getFiltersForSearch(selectedFilters),
-	// 		searchTerm,
-	// 	}).then((res) => {
-	// 		setResults(res.items);
-	// 		setSkip(res.skip);
-	// 		setTotalResults(res.total);
-	// 	});
-	// };
 
 	const handleCopySearch: MouseEventHandler<HTMLButtonElement> = (e) => {
 		e.preventDefault();
@@ -276,15 +293,21 @@ export function SearchView({
 
 			<div className="flex w-full max-w-2xl mx-auto items-center space-x-2"></div>
 			<div className="flex flex-col space-y-2">
-				{/* <div className="flex flex-grow space-x-2">
+				<div className="flex flex-grow space-x-2 relative">
 					<Input
 						type="search"
+						enterKeyHint="search"
 						placeholder="Pesquise por texto..."
 						value={searchTerm}
-						onChange={(e) => setSearchTerm(e.target.value)}
-						className="flex-grow"
+						onChange={handleSearch}
+						onKeyDown={(e) => {
+							if (e.key === "Enter") {
+								e.currentTarget?.blur?.();
+							}
+						}}
+						className="flex-grow text-md"
 					/>
-				</div> */}
+				</div>
 				<div className="flex flex-wrap gap-2">
 					{Object.entries(filtersWithDisabled)
 						.filter((v) => v[1].length > 1)
@@ -324,6 +347,11 @@ export function SearchView({
 			</div>
 			<div>
 				<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-4">
+					{isLoading && (
+						<div className="flex justify-center items-center col-span-2 sm:col-span-3 lg:col-span-4">
+							<Loader2 className="h-8 w-8 animate-spin" />
+						</div>
+					)}
 					{results.map((item) => {
 						const pictures = item.fields.pictures;
 
