@@ -198,8 +198,10 @@ export function SearchView({
 								];
 
 							return (
-								<div key={fieldName}>
-									{/* <p>{LABEL_VALUES[fieldName]}</p> */}
+								<div
+									key={fieldName}
+									className="flex-grow"
+								>
 									<ComboBox
 										onSelect={handleSelectedValues(
 											fieldName
@@ -223,7 +225,7 @@ export function SearchView({
 				</div>
 			</div>
 			<div>
-				<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+				<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 md:gap-4">
 					{results.map((item) => {
 						const pictures = item.fields.pictures;
 

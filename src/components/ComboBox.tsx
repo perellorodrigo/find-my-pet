@@ -31,6 +31,13 @@ export function ComboBox({
 }) {
 	const [open, setOpen] = React.useState(false);
 
+	const selectedArr = Array.from(selectedValues || []);
+	const label =
+		selectedArr.length === 0
+			? prompt
+			: selectedArr.length === 1
+			? selectedArr[0]
+			: `${selectedArr[0]} (+${selectedArr.length - 1})`;
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
 			<PopoverTrigger asChild>
@@ -38,11 +45,9 @@ export function ComboBox({
 					variant="outline"
 					role="combobox"
 					aria-expanded={open}
-					className="justify-between"
+					className="justify-between w-full"
 				>
-					{selectedValues.size
-						? Array.from(selectedValues).join(", ")
-						: prompt}
+					{label}
 					<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 				</Button>
 			</PopoverTrigger>
