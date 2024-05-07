@@ -1,8 +1,8 @@
 "use server";
-
-import { FilterableField, PetSkeleton } from "@/lib/types";
+import "server-only";
+import { FilterableField, PetResponse, PetSkeleton } from "@/lib/types";
 import { createClient } from "contentful";
-
+import { kv } from "@vercel/kv";
 export type Filter = {
 	[key in FilterableField]?: string[];
 };
@@ -27,10 +27,35 @@ const client = createClient({
 	accessToken: process.env.CONTENTFUL_DELIVERY_API_KEY,
 });
 
-async function getPets({ filters, skip, searchTerm }: GetPetParams) {
+async function getPets({
+	filters,
+	skip,
+	searchTerm,
+}: GetPetParams): Promise<PetResponse> {
 	const getFilterValue = (arr: string[] | undefined) => {
-		return Array.isArray(arr) && arr.length > 0 ? arr : undefined;
+		// we sort the array to make sure the order is consistent, better caching
+		if (!Array.isArray(arr) || arr.length === 0) return undefined;
+
+		return [...arr].sort();
 	};
+
+	const queryObj = {
+		content_type: "pet",
+		"fields.gender[in]": getFilterValue(filters?.gender),
+		"fields.species[in]": getFilterValue(filters?.species),
+		"fields.breed[in]": getFilterValue(filters?.breed),
+		"fields.size[in]": getFilterValue(filters?.size),
+		"fields.color[in]": getFilterValue(filters?.color),
+		skip: skip || 0,
+		query: searchTerm,
+	};
+
+	const cacheKey = JSON.stringify(queryObj);
+
+	const cached = await kv.get<PetResponse>(cacheKey);
+	if (cached) {
+		return cached;
+	}
 
 	const results = await client.getEntries<PetSkeleton>({
 		content_type: "pet",
@@ -43,12 +68,18 @@ async function getPets({ filters, skip, searchTerm }: GetPetParams) {
 		query: searchTerm,
 	});
 
-	return {
+	const returnObj = {
 		items: results.items,
 		total: results.total,
 		limit: results.limit,
 		skip: results.skip,
 	};
+
+	await kv.set(cacheKey, JSON.stringify(returnObj), {
+		ex: 60 * 60, // 1 hour
+	});
+
+	return returnObj;
 }
 
 export default getPets;

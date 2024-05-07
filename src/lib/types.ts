@@ -14,7 +14,10 @@ export type PetSkeleton = {
 	};
 };
 
-export type PetResponse = EntryCollection<PetSkeleton, undefined, string>;
+export type PetResponse = Pick<
+	EntryCollection<PetSkeleton, undefined, string>,
+	"items" | "skip" | "limit" | "total"
+>;
 export const filterableFields = [
 	"species",
 	"breed",
