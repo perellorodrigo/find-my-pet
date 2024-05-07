@@ -29,7 +29,7 @@ function ComboOptions({
 	selectedValues,
 }: {
 	selectedValues: Set<string>;
-	values: string[];
+	values: [string, boolean][];
 	placeholder: string;
 	onSelect: (value: string) => void;
 }) {
@@ -39,11 +39,14 @@ function ComboOptions({
 			<CommandList>
 				<CommandEmpty>Sem resultados.</CommandEmpty>
 				<CommandGroup>
-					{values.map((value, idx) => (
+					{values.map(([value, isDisabled], idx) => (
 						<CommandItem
 							key={value}
 							value={value}
 							onSelect={() => onSelect(value)}
+							disabled={
+								!selectedValues.has(value) && isDisabled
+							}
 						>
 							<Check
 								className={cn(
@@ -69,7 +72,7 @@ export function ComboBox({
 	selectedValues,
 }: {
 	prompt: string;
-	values: string[];
+	values: [string, boolean][];
 	selectedValues: Set<string>;
 	onSelect: (value: string) => void;
 }) {

@@ -25,6 +25,8 @@ import {
 import { BLOCKS, Document } from "@contentful/rich-text-types";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "./ui/button";
+import { getFiltersFromResults } from "@/lib/utils";
+// import { Input } from "./ui/input";
 
 const LABEL_VALUES: Record<string, string> = {
 	breed: "Raça",
@@ -131,6 +133,7 @@ export function SearchView({
 	initialResults: EntryCollection<PetSkeleton, undefined, string>["items"];
 	allFilters: Record<string, string[]>;
 }) {
+	// const [searchTerm, setSearchTerm] = useState("");
 	const [skip, setSkip] = useState(0);
 	const [totalResults, setTotalResults] = useState(total);
 	const [results, setResults] = useState(initialResults);
@@ -187,6 +190,17 @@ export function SearchView({
 		});
 	};
 
+	// const handleSearch = () => {
+	// 	getPets({
+	// 		filters: getFiltersForSearch(selectedFilters),
+	// 		searchTerm,
+	// 	}).then((res) => {
+	// 		setResults(res.items);
+	// 		setSkip(res.skip);
+	// 		setTotalResults(res.total);
+	// 	});
+	// };
+
 	const handleCopySearch: MouseEventHandler<HTMLButtonElement> = (e) => {
 		e.preventDefault();
 		const newParams = new URLSearchParams();
@@ -196,11 +210,43 @@ export function SearchView({
 			});
 		});
 
-		const [f] = fullPath.split("?");
-		const url = `${f}?${newParams.toString()}`;
+		try {
+			const [f] = fullPath.split("?");
+			const url = `${f}?${newParams.toString()}`;
+			const shareURL = `${window.location.origin}${url}`;
 
-		navigator.clipboard.writeText(window.location.origin + url);
+			if (navigator.share) {
+				navigator
+					.share({
+						title: document.title,
+						text: "",
+						url: shareURL,
+					})
+					.catch((error) =>
+						console.log("Error sharing:", error)
+					);
+			} else {
+				navigator.clipboard.writeText(shareURL);
+			}
+		} catch (error) {
+			console.log("Error copying search:", error);
+		}
 	};
+
+	const filtersWithDisabled = useMemo(() => {
+		// TODO:...
+		const filtersFromResults = getFiltersFromResults(results);
+
+		return Object.entries(allFilters).reduce<{
+			[key in FilterableField]?: [string, boolean][];
+		}>((acc, val) => {
+			const [key, value] = val as [FilterableField, string[]];
+
+			acc[key] = [...value].map((v) => [v, false]);
+
+			return acc;
+		}, {});
+	}, [allFilters, results]);
 
 	return (
 		<div className="z-10 w-full max-w-7xl container space-y-4 py-8">
@@ -209,17 +255,28 @@ export function SearchView({
 			</Heading>
 			<p className="text-center text-neutral-600">
 				Os filtros não são exatos, selecione mais de um para ficar
-				mais fácil de encontrar o que procura.
+				mais fácil de encontrar o que procura. Atualmente temos{" "}
+				{total} pets cadastrados.
 			</p>
-			<div className="flex justify-center">
+			<div className="flex w-full max-w-2xl mx-auto items-center space-x-2"></div>
+			<div className="flex flex-col space-y-2">
+				{/* <div className="flex flex-grow space-x-2">
+					<Input
+						type="search"
+						placeholder="Pesquise por texto..."
+						value={searchTerm}
+						onChange={(e) => setSearchTerm(e.target.value)}
+						className="flex-grow"
+					/>
+				</div> */}
 				<div className="flex flex-wrap gap-2">
-					{Object.entries(allFilters)
+					{Object.entries(filtersWithDisabled)
 						.filter((v) => v[1].length > 1)
 						.map((filterValue) => {
 							const [fieldName, allValues] =
 								filterValue as [
 									FilterableField,
-									string[]
+									[string, boolean][]
 								];
 
 							return (
@@ -244,8 +301,8 @@ export function SearchView({
 								</div>
 							);
 						})}
-					<Button onClick={handleCopySearch}>
-						Copiar Pesquisa
+					<Button onClick={handleCopySearch} variant={"ghost"}>
+						Compartilhar Busca
 					</Button>
 				</div>
 			</div>
