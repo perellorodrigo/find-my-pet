@@ -44,9 +44,6 @@ function ComboOptions({
 							key={value}
 							value={value}
 							onSelect={() => onSelect(value)}
-							style={{
-								gridColumnStart: (idx % 3) + 1,
-							}}
 						>
 							<Check
 								className={cn(
