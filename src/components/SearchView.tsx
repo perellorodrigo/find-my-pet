@@ -7,11 +7,12 @@ import {
 	useEffect,
 	useMemo,
 	useState,
+	useTransition,
 } from "react";
 import Heading from "./Heading";
 import { ComboBox } from "./ComboBox";
 import Image from "next/image";
-import type { Asset, Entry, EntryCollection } from "contentful";
+import type { Asset, AssetDetails, Entry, EntryCollection } from "contentful";
 import {
 	filterableFields,
 	type FilterableField,
@@ -139,6 +140,7 @@ export function SearchView({
 	const [skip, setSkip] = useState(0);
 	const [totalResults, setTotalResults] = useState(total);
 	const [results, setResults] = useState(initialResults);
+	const [isPending, startTransition] = useTransition();
 
 	const searchParams = useSearchParams();
 	const { toast } = useToast();
@@ -321,11 +323,16 @@ export function SearchView({
 				</div>
 			</div>
 			<div>
-				<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 md:gap-4">
+				<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-4">
 					{results.map((item) => {
 						const pictures = item.fields.pictures;
 
 						const firstPic = pictures?.[0] as Asset;
+						const assetDetails = firstPic?.fields.file
+							?.details as AssetDetails;
+
+						const width = assetDetails?.image?.width || 300;
+						const height = assetDetails?.image?.height || 300;
 						return (
 							<div
 								key={item.sys.id}
@@ -335,8 +342,9 @@ export function SearchView({
 									<Image
 										src={`https:${firstPic.fields.file?.url}`}
 										alt=""
-										width={300}
-										height={200}
+										width={width}
+										height={height}
+										sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
 									/>
 								)}
 
