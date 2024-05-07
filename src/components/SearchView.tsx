@@ -26,6 +26,8 @@ import { BLOCKS, Document } from "@contentful/rich-text-types";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "./ui/button";
 import { getFiltersFromResults } from "@/lib/utils";
+import { AlertTriangle } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 // import { Input } from "./ui/input";
 
 const LABEL_VALUES: Record<string, string> = {
@@ -139,6 +141,7 @@ export function SearchView({
 	const [results, setResults] = useState(initialResults);
 
 	const searchParams = useSearchParams();
+	const { toast } = useToast();
 
 	const [selectedFilters, setSelectedFilters] = useState<
 		Record<FilterableField, Set<string>>
@@ -227,6 +230,11 @@ export function SearchView({
 					);
 			} else {
 				navigator.clipboard.writeText(shareURL);
+				toast({
+					title: "Link copiado",
+					description:
+						"O link foi copiado para a área de transferência",
+				});
 			}
 		} catch (error) {
 			console.log("Error copying search:", error);
@@ -254,10 +262,16 @@ export function SearchView({
 				Encontre seu Pet (Canoas RS)
 			</Heading>
 			<p className="text-center text-neutral-600">
+				<AlertTriangle className="inline h-5 w-5  mr-2" />
+				Estamos adicionando mais animais constantemente, se não
+				achar o seu pet, não perca a esperança e volte mais tarde{" "}
+			</p>
+			<p className="text-center text-neutral-600">
 				Os filtros não são exatos, selecione mais de um para ficar
 				mais fácil de encontrar o que procura. Atualmente temos{" "}
 				{total} pets cadastrados.
 			</p>
+
 			<div className="flex w-full max-w-2xl mx-auto items-center space-x-2"></div>
 			<div className="flex flex-col space-y-2">
 				{/* <div className="flex flex-grow space-x-2">
@@ -339,9 +353,9 @@ export function SearchView({
 										/>
 									</div>
 
-									<p className="text-xs text-neutral-600 pt-6">
+									{/* <p className="text-xs text-neutral-600 pt-6">
 										ID: {item.sys.id}
-									</p>
+									</p> */}
 								</div>
 							</div>
 						);
