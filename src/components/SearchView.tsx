@@ -137,11 +137,13 @@ const debounce = <T extends (...args: any[]) => void>(fn: T, ms = 250) => {
 };
 
 export function SearchView({
+	allTotal,
 	total,
 	limit,
 	initialResults,
 	allFilters,
 }: {
+	allTotal: number;
 	total: number;
 	limit: number;
 	skip: number;
@@ -288,7 +290,7 @@ export function SearchView({
 			<p className="text-center text-neutral-600">
 				Os filtros não são exatos, selecione mais de um para ficar
 				mais fácil de encontrar o que procura. Atualmente temos{" "}
-				{total} pets cadastrados.
+				{allTotal} pets cadastrados.
 			</p>
 
 			<div className="flex w-full max-w-2xl mx-auto items-center space-x-2"></div>
