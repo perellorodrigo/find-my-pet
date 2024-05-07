@@ -35,7 +35,7 @@ function ComboOptions({
 }) {
 	return (
 		<Command>
-			<CommandInput placeholder={placeholder} />
+			<CommandInput placeholder={placeholder} className="text-md" />
 			<CommandList>
 				<CommandEmpty>Sem resultados.</CommandEmpty>
 				<CommandGroup>
