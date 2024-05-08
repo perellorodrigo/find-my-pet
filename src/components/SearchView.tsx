@@ -1,39 +1,35 @@
 "use client";
 import {
 	ChangeEventHandler,
-	HTMLProps,
 	MouseEventHandler,
 	PropsWithChildren,
 	PropsWithoutRef,
 	useCallback,
-	useEffect,
 	useMemo,
-	useRef,
 	useState,
-	useTransition,
 } from "react";
 import Heading from "./Heading";
 import { ComboBox } from "./ComboBox";
 import Image from "next/image";
 import type { Asset, AssetDetails, Entry, EntryCollection } from "contentful";
 import {
+	PetResponse,
 	filterableFields,
 	type FilterableField,
 	type PetSkeleton,
 } from "@/lib/types";
-import getPets, { Filter } from "@/actions/getPets";
 import {
 	documentToReactComponents,
 	Options as RichTextOptions,
 } from "@contentful/rich-text-react-renderer";
 import { BLOCKS, Document } from "@contentful/rich-text-types";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Button } from "./ui/button";
 import { getFiltersFromResults } from "@/lib/utils";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Input } from "./ui/input";
-// import { Input } from "./ui/input";
+import type { GetPetParams, Filter } from "@/app/api/get-pets/route";
 
 const LABEL_VALUES: Record<string, string> = {
 	breed: "Raça",
@@ -58,6 +54,44 @@ function CardInfo({
 			</p>
 		</div>
 	);
+}
+
+async function getPets({
+	filters,
+	skip,
+	searchTerm,
+}: GetPetParams): Promise<PetResponse> {
+	const newParams = new URLSearchParams();
+
+	if (filters)
+		Object.entries(filters).forEach(([key, value]) => {
+			Array.from(value).forEach((v) => {
+				newParams.append(key, v);
+			});
+		});
+
+	if (searchTerm) {
+		newParams.append("searchTerm", searchTerm);
+	}
+
+	if (skip) {
+		newParams.append("skip", skip.toString());
+	}
+
+	try {
+		const result = await fetch(`/api/get-pets?${newParams.toString()}`);
+		const resultJSON = await result.json();
+		return resultJSON;
+	} catch (error) {
+		console.error("Error fetching pets", error);
+	}
+
+	return {
+		items: [],
+		total: 0,
+		skip: 0,
+		limit: 0,
+	};
 }
 
 const options: RichTextOptions = {

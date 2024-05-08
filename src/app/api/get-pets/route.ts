@@ -1,8 +1,14 @@
-"use server";
-import "server-only";
-import { FilterableField, PetResponse, PetSkeleton } from "@/lib/types";
+import type { NextApiRequest, NextApiResponse } from "next";
+import {
+	FilterableField,
+	PetResponse,
+	PetSkeleton,
+	filterableFields,
+} from "@/lib/types";
 import { createClient } from "contentful";
 import { kv } from "@vercel/kv";
+import { NextRequest } from "next/server";
+
 export type Filter = {
 	[key in FilterableField]?: string[];
 };
@@ -27,7 +33,7 @@ const client = createClient({
 	accessToken: process.env.CONTENTFUL_DELIVERY_API_KEY,
 });
 
-async function getPets({
+export async function getPets({
 	filters,
 	skip,
 	searchTerm,
@@ -54,6 +60,7 @@ async function getPets({
 
 	const cached = await kv.get<PetResponse>(cacheKey);
 	if (cached) {
+		console.log("Cache hit for", cacheKey);
 		return cached;
 	}
 
@@ -75,6 +82,7 @@ async function getPets({
 		skip: results.skip,
 	};
 
+	console.log("Setting cache for", cacheKey);
 	await kv.set(cacheKey, JSON.stringify(returnObj), {
 		ex: 60 * 60, // 1 hour
 	});
@@ -82,4 +90,28 @@ async function getPets({
 	return returnObj;
 }
 
-export default getPets;
+export async function GET(request: NextRequest) {
+	const query = request.nextUrl.searchParams;
+
+	const filters: Filter = {};
+
+	filterableFields.forEach((field) => {
+		const filterValue = query.getAll(field);
+		if (filterValue) {
+			filters[field] = Array.isArray(filterValue)
+				? filterValue
+				: [filterValue];
+		}
+	});
+
+	const searchTerm = query.get("searchTerm");
+	const skip_str = query.get("skip");
+
+	const result = await getPets({
+		filters,
+		searchTerm: searchTerm ?? undefined,
+		skip: skip_str ? +skip_str : undefined,
+	});
+
+	return Response.json(result);
+}
