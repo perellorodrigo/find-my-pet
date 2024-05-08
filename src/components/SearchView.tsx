@@ -79,7 +79,11 @@ async function getPets({
 	}
 
 	try {
-		const result = await fetch(`/api/get-pets?${newParams.toString()}`);
+		const result = await fetch(`/api/get-pets?${newParams.toString()}`, {
+			next: {
+				revalidate: 3600, // 1 hour
+			},
+		});
 		const resultJSON = await result.json();
 		return resultJSON;
 	} catch (error) {
