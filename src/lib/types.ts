@@ -1,4 +1,4 @@
-import type { EntryCollection, EntryFieldTypes } from "contentful";
+import type { Asset, Entry, EntryFieldTypes } from "contentful";
 
 export type PetSkeleton = {
 	contentTypeId: "pet";
@@ -14,10 +14,29 @@ export type PetSkeleton = {
 	};
 };
 
-export type PetResponse = Pick<
-	EntryCollection<PetSkeleton, undefined, string>,
-	"items" | "skip" | "limit" | "total"
->;
+export type PetItem = Entry<PetSkeleton, undefined, string>;
+
+export type PetResponseItem = {
+	sys: {
+		id: string;
+	};
+	fields: Omit<PetItem["fields"], "pictures"> & {
+		pictures: {
+			sys: {
+				id: string;
+			};
+			fields: Asset["fields"];
+		}[];
+	};
+};
+
+export type PetResponse = {
+	total: number;
+	skip: number;
+	limit: number;
+	items: PetResponseItem[];
+};
+
 export const filterableFields = [
 	"species",
 	"breed",

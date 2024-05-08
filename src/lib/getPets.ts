@@ -2,10 +2,10 @@ import "server-only";
 import {
 	FilterableField,
 	PetResponse,
+	PetResponseItem,
 	PetSkeleton,
-	filterableFields,
 } from "@/lib/types";
-import { createClient } from "contentful";
+import { Asset, UnresolvedLink, createClient } from "contentful";
 import { createClient as createKVClient } from "@vercel/kv";
 
 if (!process.env.KV_REST_API_TOKEN || !process.env.KV_REST_API_URL) {
@@ -42,6 +42,12 @@ const client = createClient({
 	accessToken: process.env.CONTENTFUL_DELIVERY_API_KEY,
 });
 
+function isAsset(
+	obj: UnresolvedLink<"Asset"> | Asset<undefined, string>
+): obj is Asset<undefined, string> {
+	return obj.sys.type === "Asset";
+}
+
 export async function getPets({
 	filters,
 	skip,
@@ -67,7 +73,6 @@ export async function getPets({
 
 	const cacheKey = JSON.stringify(queryObj);
 
-	// Does this write to cache vercel?
 	const cached = await kv.get<PetResponse>(cacheKey);
 	if (cached) {
 		console.log("Cache hit for", cacheKey);
@@ -76,8 +81,33 @@ export async function getPets({
 
 	const results = await client.getEntries<PetSkeleton>(queryObj);
 
+	const minifiedResults = results.items.map((item) => {
+		const { sys, fields } = item;
+
+		const responseItem: PetResponseItem = {
+			sys: {
+				id: sys.id,
+			},
+			fields: {
+				...fields,
+				pictures: fields.pictures
+					?.filter(isAsset)
+					.map((picture) => {
+						return {
+							fields: picture.fields,
+							sys: {
+								id: picture.sys.id,
+							},
+						};
+					}),
+			},
+		};
+
+		return responseItem;
+	});
+
 	const returnObj = {
-		items: results.items,
+		items: minifiedResults,
 		total: results.total,
 		limit: results.limit,
 		skip: results.skip,

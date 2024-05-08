@@ -14,9 +14,9 @@ import Image from "next/image";
 import type { Asset, AssetDetails, Entry, EntryCollection } from "contentful";
 import {
 	PetResponse,
+	PetResponseItem,
 	filterableFields,
 	type FilterableField,
-	type PetSkeleton,
 } from "@/lib/types";
 import {
 	documentToReactComponents,
@@ -135,11 +135,7 @@ function RichTextRenderer({
 	);
 }
 
-function CardBasicInfo({
-	item,
-}: {
-	item: Entry<PetSkeleton, undefined, string>;
-}) {
+function CardBasicInfo({ item }: { item: PetResponseItem }) {
 	return filterableFields.map((field) => {
 		const value = item.fields[field];
 
@@ -185,7 +181,7 @@ export function SearchView({
 	total: number;
 	limit: number;
 	skip: number;
-	initialResults: EntryCollection<PetSkeleton, undefined, string>["items"];
+	initialResults: PetResponseItem[];
 	allFilters: Record<string, string[]>;
 }) {
 	const [searchTerm, setSearchTerm] = useState("");
