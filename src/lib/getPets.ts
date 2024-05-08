@@ -84,7 +84,7 @@ export async function getPets({
 
 	console.log("Setting cache for", cacheKey);
 	await kv.set(cacheKey, JSON.stringify(returnObj), {
-		ex: 60 * 60, // 1 hour
+		ex: 60 * 60 * 3, // 1 hour
 	});
 
 	return returnObj;
