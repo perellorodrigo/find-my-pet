@@ -12,7 +12,7 @@ if (!process.env.KV_REST_API_TOKEN || !process.env.KV_REST_API_URL) {
 	throw new Error("Missing KV API keys");
 }
 
-const kv = createKVClient({
+export const kv = createKVClient({
 	token: process.env.KV_REST_API_TOKEN,
 	url: process.env.KV_REST_API_URL,
 	cache: "no-store",
@@ -74,6 +74,7 @@ export async function getPets({
 	const cacheKey = JSON.stringify(queryObj);
 
 	const cached = await kv.get<PetResponse>(cacheKey);
+
 	if (cached) {
 		console.log("Cache hit for", cacheKey);
 		return cached;

@@ -1,5 +1,5 @@
 import { SearchView } from "@/components/SearchView";
-import { Filter, getPets } from "@/lib/getPets";
+import { Filter, getPets, kv } from "@/lib/getPets";
 import { filterableFields } from "@/lib/types";
 import { getFiltersFromResults } from "@/lib/utils";
 
@@ -43,21 +43,33 @@ export default async function Home({
 		skip: results.skip,
 	};
 
-	// TODO: Look into caching this
-	let pageCount = 0;
-	while (allResults.items.length < allResults.total || pageCount === 10) {
-		const nextResults = await getPets({
-			skip: allResults.skip + allResults.limit,
+	let allFilters = await kv.get<Record<string, string[]>>("all-filters");
+	if (!allFilters) {
+		console.log("Cache miss for all-filters");
+		let pageCount = 0;
+		while (
+			allResults.items.length < allResults.total ||
+			pageCount === 20
+		) {
+			console.log("Fetching more pets for all-filters");
+			const nextResults = await getPets({
+				skip: allResults.skip + allResults.limit,
+			});
+
+			allResults.items = allResults.items.concat(nextResults.items);
+			allResults.total = nextResults.total;
+			allResults.skip = nextResults.skip;
+			allResults.limit = nextResults.limit;
+			pageCount++;
+		}
+
+		allFilters = getFiltersFromResults(allResults.items);
+		await kv.set("all-filters", JSON.stringify(allFilters), {
+			ex: 60 * 60 * 3, // 3 hours
 		});
-
-		allResults.items = allResults.items.concat(nextResults.items);
-		allResults.total = nextResults.total;
-		allResults.skip = nextResults.skip;
-		allResults.limit = nextResults.limit;
-		pageCount++;
+	} else {
+		console.log("Cache hit for all-filters");
 	}
-
-	const allFilters = getFiltersFromResults(allResults.items);
 
 	return (
 		<main className="flex min-h-screen flex-col items-center justify-between">
