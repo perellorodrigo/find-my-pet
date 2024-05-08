@@ -29,7 +29,7 @@ import { getFiltersFromResults } from "@/lib/utils";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Input } from "./ui/input";
-import type { GetPetParams, Filter } from "@/app/api/get-pets/route";
+import type { GetPetParams, Filter } from "@/lib/getPets";
 
 const LABEL_VALUES: Record<string, string> = {
 	breed: "Raça",

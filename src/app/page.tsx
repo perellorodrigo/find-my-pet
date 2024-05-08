@@ -1,7 +1,7 @@
 import { SearchView } from "@/components/SearchView";
+import { Filter, getPets } from "@/lib/getPets";
 import { filterableFields } from "@/lib/types";
 import { getFiltersFromResults } from "@/lib/utils";
-import { Filter, getPets } from "./api/get-pets/route";
 
 export default async function Home({
 	searchParams,
