@@ -71,6 +71,16 @@ export default async function Home({
 		console.log("Cache hit for all-filters");
 	}
 
+	const sortedFilters: Record<string, string[]> = {};
+	if (allFilters && typeof allFilters === "object") {
+		for (const [key, value] of Object.entries(allFilters)) {
+			if (!Array.isArray(value)) continue;
+
+			const sorted = [...value].sort();
+			sortedFilters[key] = sorted;
+		}
+	}
+
 	return (
 		<main className="flex min-h-screen flex-col items-center justify-between">
 			<SearchView
@@ -79,7 +89,7 @@ export default async function Home({
 				limit={initialResults.limit}
 				skip={initialResults.skip}
 				initialResults={initialResults.items}
-				allFilters={allFilters}
+				allFilters={sortedFilters}
 			/>
 		</main>
 	);
