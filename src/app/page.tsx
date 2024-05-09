@@ -88,7 +88,7 @@ export default async function Home({
 
 	const queryClient = new QueryClient();
 
-	await queryClient.prefetchQuery({
+	await queryClient.prefetchInfiniteQuery({
 		queryKey: [
 			"getPets",
 			{
@@ -96,7 +96,18 @@ export default async function Home({
 				filters: filters,
 			},
 		],
-		initialData: initialResults,
+		initialPageParam: {
+			skip: 0,
+		},
+		queryFn: async () => initialResults,
+		pages: 1,
+		getNextPageParam: (lastPage) => {
+			if (lastPage.skip + lastPage.limit < lastPage.total) {
+				return {
+					skip: lastPage.skip + lastPage.limit,
+				};
+			}
+		},
 	});
 
 	return (

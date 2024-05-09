@@ -65,6 +65,7 @@ const getPets: QueryFunction<
 	}
 > = async ({ queryKey, pageParam }): Promise<PetResponse> => {
 	const [_, { filters, searchTerm }] = queryKey;
+
 	const skip = pageParam.skip;
 
 	const newParams = new URLSearchParams();
@@ -159,6 +160,8 @@ function getFiltersForSearch(filters: Record<string, Set<string>>) {
 	return Object.entries(filters).reduce<{
 		[key in FilterableField]?: string[];
 	}>((acc, [key, value]) => {
+		if (value.size === 0) return acc;
+
 		acc[key as FilterableField] = Array.from(value);
 		return acc;
 	}, {});
