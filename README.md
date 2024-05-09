@@ -2,9 +2,13 @@ This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next
 
 ## Getting Started
 
-1. Create a new app at [contentful.com](https://www.contentful.com)
-
-2. Run the development server:
+1. Create a new account at [contentful.com](https://www.contentful.com)
+    1. Create a new _Content Model_ called `pets` with the folowing fields: `title`, `species`, `pictures`, `breed`, `description`, `size`, `gender`, and `color`.
+    1. Copy your `Space ID` and `Content Delivery API - access token` from `Settings`
+1. Create a [Vercel](https://vercel.com) Project including a `KV Database`
+    1. Copy the following secrets from the KV Database: `KV_URL`, `KV_REST_API_URL`, `KV_REST_API_TOKEN`, `KV_REST_API_READ_ONLY_TOKEN`
+1. Copy your `.env.sample` to `.env.development.local` and fill all the ENV vars
+1. Run the development server:
 
     ```bash
     npm install
