@@ -2,6 +2,11 @@ import { SearchView } from "@/components/SearchView";
 import { Filter, getPets, kv } from "@/lib/getPets";
 import { filterableFields } from "@/lib/types";
 import { getFiltersFromResults } from "@/lib/utils";
+import {
+	HydrationBoundary,
+	QueryClient,
+	dehydrate,
+} from "@tanstack/react-query";
 
 export default async function Home({
 	searchParams,
@@ -81,16 +86,38 @@ export default async function Home({
 		}
 	}
 
+	const queryClient = new QueryClient();
+
+	await queryClient.prefetchInfiniteQuery({
+		queryKey: [
+			"getPets",
+			{
+				searchTerm: "",
+				filters: filters,
+			},
+		],
+		initialPageParam: {
+			skip: 0,
+		},
+		queryFn: async () => initialResults,
+		pages: 1,
+		getNextPageParam: (lastPage) => {
+			if (lastPage.skip + lastPage.limit < lastPage.total) {
+				return {
+					skip: lastPage.skip + lastPage.limit,
+				};
+			}
+		},
+	});
+
 	return (
 		<main className="flex min-h-screen flex-col items-center justify-between">
-			<SearchView
-				allTotal={allResults.total}
-				total={initialResults.total}
-				limit={initialResults.limit}
-				skip={initialResults.skip}
-				initialResults={initialResults.items}
-				allFilters={sortedFilters}
-			/>
+			<HydrationBoundary state={dehydrate(queryClient)}>
+				<SearchView
+					allTotal={allResults.total}
+					allFilters={sortedFilters}
+				/>
+			</HydrationBoundary>
 		</main>
 	);
 }

@@ -4,6 +4,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Analytics } from "@vercel/analytics/react";
 import { Toaster } from "@/components/ui/toaster";
+import Providers from "@/components/react-query/ReactQueryClientProvider";
 const fontSans = FontSans({
 	subsets: ["latin"],
 	variable: "--font-sans",
@@ -27,7 +28,7 @@ export default function RootLayout({
 					fontSans.variable
 				)}
 			>
-				{children}
+				<Providers>{children} </Providers>
 				<Toaster />
 			</body>
 			<Analytics />
