@@ -4,7 +4,7 @@ import {
 	MouseEventHandler,
 	PropsWithChildren,
 	PropsWithoutRef,
-	useCallback,
+	useEffect,
 	useMemo,
 	useState,
 } from "react";
@@ -29,7 +29,8 @@ import { cn, getFiltersFromResults } from "@/lib/utils";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Input } from "./ui/input";
-import type { GetPetParams, Filter } from "@/lib/getPets";
+import type { GetPetParams } from "@/lib/getPets";
+import { QueryFunction, useInfiniteQuery } from "@tanstack/react-query";
 
 const LABEL_VALUES: Record<string, string> = {
 	breed: "Raça",
@@ -56,11 +57,16 @@ function CardInfo({
 	);
 }
 
-async function getPets({
-	filters,
-	skip,
-	searchTerm,
-}: GetPetParams): Promise<PetResponse> {
+const getPets: QueryFunction<
+	PetResponse,
+	[string, Omit<GetPetParams, "skip">],
+	{
+		skip: number;
+	}
+> = async ({ queryKey, pageParam }): Promise<PetResponse> => {
+	const [_, { filters, searchTerm }] = queryKey;
+	const skip = pageParam.skip;
+
 	const newParams = new URLSearchParams();
 
 	if (filters)
@@ -79,11 +85,7 @@ async function getPets({
 	}
 
 	try {
-		const result = await fetch(`/api/get-pets?${newParams.toString()}`, {
-			next: {
-				revalidate: 3600, // 1 hour
-			},
-		});
+		const result = await fetch(`/api/get-pets?${newParams.toString()}`);
 		const resultJSON = await result.json();
 		return resultJSON;
 	} catch (error) {
@@ -96,7 +98,7 @@ async function getPets({
 		skip: 0,
 		limit: 0,
 	};
-}
+};
 
 const options: RichTextOptions = {
 	renderNode: {
@@ -162,33 +164,30 @@ function getFiltersForSearch(filters: Record<string, Set<string>>) {
 	}, {});
 }
 
-const debounce = <T extends (...args: any[]) => void>(fn: T, ms = 250) => {
-	let timeoutId: ReturnType<typeof setTimeout>;
-	return ((...args: any[]) => {
-		clearTimeout(timeoutId);
-		timeoutId = setTimeout(() => fn(...args), ms);
-	}) as T;
-};
+export function useDebounce<T>(value: T, delay: number) {
+	const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+	useEffect(() => {
+		const handler = setTimeout(() => {
+			setDebouncedValue(value);
+		}, delay);
+
+		return () => {
+			clearTimeout(handler);
+		};
+	}, [value, delay]);
+
+	return debouncedValue;
+}
 
 export function SearchView({
 	allTotal,
-	total,
-	limit,
-	initialResults,
 	allFilters,
 }: {
 	allTotal: number;
-	total: number;
-	limit: number;
-	skip: number;
-	initialResults: PetResponseItem[];
 	allFilters: Record<string, string[]>;
 }) {
 	const [searchTerm, setSearchTerm] = useState("");
-	const [isLoading, setIsLoading] = useState(false);
-	const [skip, setSkip] = useState(0);
-	const [totalResults, setTotalResults] = useState(total);
-	const [results, setResults] = useState(initialResults);
 
 	const searchParams = useSearchParams();
 	const { toast } = useToast();
@@ -203,24 +202,42 @@ export function SearchView({
 		color: new Set(searchParams.getAll("color")),
 	});
 
-	const fullPath = usePathname();
+	const debouncedSearchTerm = useDebounce(searchTerm, 250);
 
-	const debounceSearch = useCallback(
-		debounce((searchQuery: string, filters: Filter) => {
-			setIsLoading(true);
+	const {
+		data,
+		isLoading: isLoadingQuery,
+		isFetchingNextPage,
+		fetchNextPage,
+	} = useInfiniteQuery({
+		queryKey: [
+			"getPets",
+			{
+				searchTerm: debouncedSearchTerm,
+				filters: getFiltersForSearch(selectedFilters),
+			},
+		],
+		queryFn: getPets,
+		getNextPageParam: (lastPage, pages) => {
+			return {
+				skip: lastPage.skip + lastPage.limit,
+			};
+		},
+		initialPageParam: {
+			skip: 0,
+		},
+	});
 
-			getPets({
-				filters: filters,
-				searchTerm: searchQuery,
-			}).then((res) => {
-				setResults(res.items);
-				setSkip(res.skip);
-				setTotalResults(res.total);
-				setIsLoading(false);
-			});
-		}),
-		[]
+	const { pages } = data || {};
+	const lastPage = pages?.[pages.length - 1];
+	const totalResults = lastPage?.total || 0;
+
+	const results = useMemo(
+		() => pages?.flatMap((page) => page.items) || [],
+		[pages]
 	);
+
+	const fullPath = usePathname();
 
 	const handleSelectedValues =
 		(fieldName: FilterableField) => (value: string) => {
@@ -238,25 +255,15 @@ export function SearchView({
 			};
 
 			setSelectedFilters(newFilters);
-			debounceSearch(searchTerm, getFiltersForSearch(newFilters));
 		};
 
 	const handleSearch: ChangeEventHandler<HTMLInputElement> = (e) => {
 		// This is an instant UI change
 		setSearchTerm(e.target.value);
-
-		debounceSearch(e.target.value, getFiltersForSearch(selectedFilters));
 	};
 
 	const handleLoadMore = () => {
-		getPets({
-			filters: getFiltersForSearch(selectedFilters),
-			skip: skip + limit,
-		}).then((res) => {
-			setResults([...results, ...res.items]);
-			setSkip(res.skip);
-			setTotalResults(res.total);
-		});
+		fetchNextPage();
 	};
 
 	const handleCopySearch: MouseEventHandler<HTMLButtonElement> = (e) => {
@@ -294,6 +301,18 @@ export function SearchView({
 		} catch (error) {
 			console.log("Error copying search:", error);
 		}
+	};
+
+	const handleClearFilters = () => {
+		const newFilters = {
+			breed: new Set<string>(),
+			size: new Set<string>(),
+			species: new Set<string>(),
+			color: new Set<string>(),
+			gender: new Set<string>(),
+		};
+
+		setSelectedFilters(newFilters);
 	};
 
 	const filtersWithDisabled = useMemo(() => {
@@ -393,14 +412,20 @@ export function SearchView({
 								</div>
 							);
 						})}
-					<Button onClick={handleCopySearch} variant={"ghost"}>
+					<Button
+						onClick={handleClearFilters}
+						variant={"destructive"}
+					>
+						Limpar Filtros
+					</Button>
+					<Button onClick={handleCopySearch} variant={"link"}>
 						Compartilhar Busca
 					</Button>
 				</div>
 			</div>
 			<div>
 				<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-4">
-					{isLoading && (
+					{isLoadingQuery && (
 						<div className="flex justify-center items-center col-span-2 sm:col-span-3 lg:col-span-4">
 							<Loader2 className="h-8 w-8 animate-spin" />
 						</div>
@@ -417,7 +442,7 @@ export function SearchView({
 						return (
 							<div
 								key={item.sys.id}
-								className={`flex flex-col rounded-lg shadow-md overflow-hidden bg-white`}
+								className={`flex flex-col rounded-lg shadow-md overflow-hidden bg-white relative`}
 							>
 								{firstPic && (
 									<Image
@@ -458,7 +483,10 @@ export function SearchView({
 					<Button
 						onClick={handleLoadMore}
 						variant={"outline"}
-						disabled={results.length === totalResults}
+						disabled={
+							results.length === totalResults ||
+							isFetchingNextPage
+						}
 					>
 						Carregar mais
 					</Button>
