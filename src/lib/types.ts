@@ -16,6 +16,14 @@ export type PetSkeleton = {
 
 export type PetItem = Entry<PetSkeleton, undefined, string>;
 
+export type SiteConfigSkeleton = {
+	contentTypeId: "siteConfig";
+	fields: {
+		title: EntryFieldTypes.Text;
+		introRichText: EntryFieldTypes.RichText;
+	};
+};
+
 export type PetResponseItem = {
 	sys: {
 		id: string;

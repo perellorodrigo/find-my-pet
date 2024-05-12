@@ -1,6 +1,8 @@
+import ContentfulRichTextRenderer from "@/components/ContentfulRichText";
 import { SearchView } from "@/components/SearchView";
+import contentfulClient from "@/lib/contentful-client";
 import { Filter, getPets, kv } from "@/lib/getPets";
-import { filterableFields } from "@/lib/types";
+import { SiteConfigSkeleton, filterableFields } from "@/lib/types";
 import { getFiltersFromResults } from "@/lib/utils";
 import {
 	HydrationBoundary,
@@ -110,13 +112,26 @@ export default async function Home({
 		},
 	});
 
+	const siteConfigRes =
+		await contentfulClient.getEntries<SiteConfigSkeleton>({
+			content_type: "siteConfig",
+		});
+
+	const introRichText = siteConfigRes.items?.[0].fields.introRichText;
+
 	return (
-		<main className="flex min-h-screen flex-col items-center justify-between">
+		<main className="flex min-h-screen flex-col items-center">
 			<HydrationBoundary state={dehydrate(queryClient)}>
-				<SearchView
-					allTotal={allResults.total}
-					allFilters={sortedFilters}
-				/>
+				<div className="z-10 w-full max-w-screen-2xl container space-y-4 py-8">
+					<ContentfulRichTextRenderer
+						content={introRichText}
+						className="text-center space-y-4 mt-8"
+					/>
+					<SearchView
+						allTotal={allResults.total}
+						allFilters={sortedFilters}
+					/>
+				</div>
 			</HydrationBoundary>
 		</main>
 	);
