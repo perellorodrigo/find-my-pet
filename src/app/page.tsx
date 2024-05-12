@@ -12,7 +12,7 @@ import {
 } from "@tanstack/react-query";
 import { Entry } from "contentful";
 
-const SITE_KEY = "siteConfig";
+const SITE_KEY = "siteConfig-query";
 
 export default async function Home({
 	searchParams,

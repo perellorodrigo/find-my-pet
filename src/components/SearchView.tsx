@@ -26,7 +26,7 @@ import { BLOCKS, Document } from "@contentful/rich-text-types";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Button } from "./ui/button";
 import { cn, getFiltersFromResults } from "@/lib/utils";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { AlertTriangle, Loader2, Share2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Input } from "./ui/input";
 import type { GetPetParams } from "@/lib/getPets";
@@ -354,7 +354,7 @@ export function SearchView({
 						Limpar Filtros
 					</Button>
 					<Button onClick={handleCopySearch} variant={"link"}>
-						Compartilhar Busca
+						<Share2 className="mr-2" /> Compartilhar Busca
 					</Button>
 				</div>
 			</div>
@@ -412,17 +412,12 @@ export function SearchView({
 									/>
 								</div>
 
-								<span>ID: {item.sys.id}</span>
+								{/* <span>ID: {item.sys.id}</span>
 								<a
 									href={`https://app.contentful.com/spaces/c3w5af85qr6f/entries/${item.sys.id}`}
 								>
 									Ver no Contentful
-								</a>
-
-								{/* <p className="text-xs text-neutral-600 pt-6">
-										https://app.contentful.com/spaces/c3w5af85qr6f/entries/
-										{item.sys.id}
-									</p> */}
+								</a> */}
 							</div>
 						</div>
 					);
