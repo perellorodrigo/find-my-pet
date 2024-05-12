@@ -1,7 +1,8 @@
 import ContentfulRichTextRenderer from "@/components/ContentfulRichText";
 import { SearchView } from "@/components/SearchView";
 import contentfulClient from "@/lib/contentful-client";
-import { Filter, getPets, kv } from "@/lib/getPets";
+import { Filter, getPets } from "@/lib/getPets";
+import { redisClient } from "@/lib/redis-client";
 import { SiteConfigSkeleton, filterableFields } from "@/lib/types";
 import { getFiltersFromResults } from "@/lib/utils";
 import {
@@ -9,6 +10,9 @@ import {
 	QueryClient,
 	dehydrate,
 } from "@tanstack/react-query";
+import { Entry } from "contentful";
+
+const SITE_KEY = "siteConfig";
 
 export default async function Home({
 	searchParams,
@@ -50,7 +54,10 @@ export default async function Home({
 		skip: results.skip,
 	};
 
-	let allFilters = await kv.get<Record<string, string[]>>("all-filters");
+	let allFilters = await redisClient.get<Record<string, string[]>>(
+		"all-filters"
+	);
+
 	if (!allFilters) {
 		console.log("Cache miss for all-filters");
 		let pageCount = 0;
@@ -71,7 +78,7 @@ export default async function Home({
 		}
 
 		allFilters = getFiltersFromResults(allResults.items);
-		await kv.set("all-filters", JSON.stringify(allFilters), {
+		await redisClient.set("all-filters", JSON.stringify(allFilters), {
 			ex: 60 * 60 * 3, // 3 hours
 		});
 	} else {
@@ -112,19 +119,31 @@ export default async function Home({
 		},
 	});
 
-	const siteConfigRes =
-		await contentfulClient.getEntries<SiteConfigSkeleton>({
-			content_type: "siteConfig",
-		});
+	let siteConfig = await redisClient.get<
+		Entry<SiteConfigSkeleton, undefined, string>
+	>(SITE_KEY);
 
-	const introRichText = siteConfigRes.items?.[0].fields.introRichText;
+	if (!siteConfig) {
+		console.log("Cache miss for siteConfig");
+		const siteConfigRes =
+			await contentfulClient.getEntries<SiteConfigSkeleton>({
+				content_type: "siteConfig",
+			});
+
+		siteConfig = siteConfigRes.items?.[0];
+		if (siteConfig) {
+			await redisClient.set(SITE_KEY, JSON.stringify(siteConfig), {
+				ex: 60 * 30, // 30min
+			});
+		}
+	}
 
 	return (
 		<main className="flex min-h-screen flex-col items-center">
 			<HydrationBoundary state={dehydrate(queryClient)}>
 				<div className="z-10 w-full max-w-screen-2xl container space-y-4 py-8">
 					<ContentfulRichTextRenderer
-						content={introRichText}
+						content={siteConfig.fields.introRichText}
 						className="text-center space-y-4 mt-8"
 					/>
 					<SearchView

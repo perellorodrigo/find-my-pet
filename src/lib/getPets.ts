@@ -6,18 +6,8 @@ import {
 	PetSkeleton,
 } from "@/lib/types";
 import { Asset, UnresolvedLink } from "contentful";
-import { createClient as createKVClient } from "@vercel/kv";
 import contentfulClient from "./contentful-client";
-
-if (!process.env.KV_REST_API_TOKEN || !process.env.KV_REST_API_URL) {
-	throw new Error("Missing KV API keys");
-}
-
-export const kv = createKVClient({
-	token: process.env.KV_REST_API_TOKEN,
-	url: process.env.KV_REST_API_URL,
-	cache: "no-store",
-});
+import { redisClient } from "./redis-client";
 
 export type Filter = {
 	[key in FilterableField]?: string[];
@@ -60,7 +50,7 @@ export async function getPets({
 
 	const cacheKey = JSON.stringify(queryObj);
 
-	const cached = await kv.get<PetResponse>(cacheKey);
+	const cached = await redisClient.get<PetResponse>(cacheKey);
 
 	if (cached) {
 		console.log("Cache hit for", cacheKey);
@@ -102,7 +92,7 @@ export async function getPets({
 	};
 
 	console.log("Setting cache for", cacheKey);
-	await kv.set(cacheKey, JSON.stringify(returnObj), {
+	await redisClient.set(cacheKey, JSON.stringify(returnObj), {
 		ex: 60 * 60 * 3, // 3 hours
 	});
 
