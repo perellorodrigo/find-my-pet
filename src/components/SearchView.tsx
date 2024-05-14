@@ -353,7 +353,7 @@ export function SearchView({
 					>
 						Limpar Filtros
 					</Button>
-					<Button onClick={handleCopySearch} variant={"link"}>
+					<Button onClick={handleCopySearch} variant={"outline"}>
 						<Share2 className="mr-2" /> Compartilhar Busca
 					</Button>
 				</div>
@@ -385,6 +385,7 @@ export function SearchView({
 
 					const width = assetDetails?.image?.width || 300;
 					const height = assetDetails?.image?.height || 300;
+
 					return (
 						<div
 							key={item.sys.id}
@@ -403,7 +404,6 @@ export function SearchView({
 							<div className="p-4 flex flex-col space-y-2 justify-between flex-1">
 								<div className="flex flex-col">
 									<CardBasicInfo item={item} />
-
 									<ContentfulRichTextRenderer
 										content={
 											item.fields.description
@@ -411,13 +411,6 @@ export function SearchView({
 										className="mt-2 space-y-1"
 									/>
 								</div>
-
-								{/* <span>ID: {item.sys.id}</span>
-								<a
-									href={`https://app.contentful.com/spaces/c3w5af85qr6f/entries/${item.sys.id}`}
-								>
-									Ver no Contentful
-								</a> */}
 							</div>
 						</div>
 					);
