@@ -38,7 +38,7 @@ const options: RichTextOptions = {
 					rel="noopener noreferrer"
 					className={cn(
 						"text-primary underline-offset-4 hover:underline",
-						"inline-flex whitespace-nowrap text-md font-medium ml-2 ring-offset-background transition-colors",
+						"inline-flex whitespace-nowrap text-md font-medium ring-offset-background transition-colors",
 						"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
 					)}
 				>
