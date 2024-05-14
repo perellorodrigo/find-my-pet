@@ -2,61 +2,23 @@
 import {
 	ChangeEventHandler,
 	MouseEventHandler,
-	PropsWithChildren,
-	PropsWithoutRef,
 	useEffect,
 	useMemo,
 	useState,
 } from "react";
-import Heading from "./Heading";
 import { ComboBox } from "./ComboBox";
-import Image from "next/image";
-import type { Asset, AssetDetails, Entry, EntryCollection } from "contentful";
-import {
-	PetResponse,
-	PetResponseItem,
-	filterableFields,
-	type FilterableField,
-} from "@/lib/types";
-import {
-	documentToReactComponents,
-	Options as RichTextOptions,
-} from "@contentful/rich-text-react-renderer";
-import { BLOCKS, Document } from "@contentful/rich-text-types";
+import { LABEL_VALUES, PetResponse, type FilterableField } from "@/lib/types";
+
 import { usePathname, useSearchParams } from "next/navigation";
 import { Button } from "./ui/button";
-import { cn, getFiltersFromResults } from "@/lib/utils";
-import { AlertTriangle, Loader2, Share2 } from "lucide-react";
+import { getFiltersFromResults } from "@/lib/utils";
+import { Loader2, Share2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Input } from "./ui/input";
 import type { GetPetParams } from "@/lib/getPets";
 import { QueryFunction, useInfiniteQuery } from "@tanstack/react-query";
-import ContentfulRichTextRenderer from "./ContentfulRichText";
-
-const LABEL_VALUES: Record<string, string> = {
-	breed: "Raça",
-	size: "Porte",
-	species: "Espécie",
-	gender: "Sexo",
-	color: "Cor",
-} satisfies Record<FilterableField, string>;
-
-function CardInfo({
-	label,
-	value,
-}: PropsWithChildren<{
-	label: string;
-	value: string;
-}>) {
-	return (
-		<div className="inline-flex items-center">
-			<p className="text-sm break-all font-light text-primary">
-				<span className="font-semibold">{label}: </span>
-				{value}
-			</p>
-		</div>
-	);
-}
+import React from "react";
+import { PetCard } from "./PetCard";
 
 const getPets: QueryFunction<
 	PetResponse,
@@ -102,24 +64,6 @@ const getPets: QueryFunction<
 	};
 };
 
-function CardBasicInfo({ item }: { item: PetResponseItem }) {
-	return filterableFields.map((field) => {
-		const value = item.fields[field];
-
-		if (!value) {
-			return null;
-		}
-
-		return (
-			<CardInfo
-				key={field}
-				label={LABEL_VALUES[field]}
-				value={value}
-			/>
-		);
-	});
-}
-
 function getFiltersForSearch(filters: Record<string, Set<string>>) {
 	return Object.entries(filters).reduce<{
 		[key in FilterableField]?: string[];
@@ -155,7 +99,6 @@ export function SearchView({
 	allFilters: Record<string, string[]>;
 }) {
 	const [searchTerm, setSearchTerm] = useState("");
-
 	const searchParams = useSearchParams();
 	const { toast } = useToast();
 
@@ -376,45 +319,9 @@ export function SearchView({
 						<Loader2 className="h-8 w-8 animate-spin" />
 					</div>
 				)}
-				{results.map((item) => {
-					const pictures = item.fields.pictures;
-
-					const firstPic = pictures?.[0] as Asset;
-					const assetDetails = firstPic?.fields.file
-						?.details as AssetDetails;
-
-					const width = assetDetails?.image?.width || 300;
-					const height = assetDetails?.image?.height || 300;
-
-					return (
-						<div
-							key={item.sys.id}
-							className={`flex flex-col rounded-lg shadow-md overflow-hidden bg-white relative`}
-						>
-							{firstPic && (
-								<Image
-									src={`https:${firstPic.fields.file?.url}`}
-									alt=""
-									width={width}
-									height={height}
-									sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-								/>
-							)}
-
-							<div className="p-4 flex flex-col space-y-2 justify-between flex-1">
-								<div className="flex flex-col">
-									<CardBasicInfo item={item} />
-									<ContentfulRichTextRenderer
-										content={
-											item.fields.description
-										}
-										className="mt-2 space-y-1"
-									/>
-								</div>
-							</div>
-						</div>
-					);
-				})}
+				{results.map((pet) => (
+					<PetCard key={pet.sys.id} pet={pet} />
+				))}
 			</div>
 
 			<div className="flex flex-col justify-center items-center w-full mt-4 space-y-2">

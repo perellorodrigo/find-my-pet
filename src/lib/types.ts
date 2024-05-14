@@ -54,3 +54,11 @@ export const filterableFields = [
 ] as const;
 
 export type FilterableField = (typeof filterableFields)[number];
+
+export const LABEL_VALUES: Record<string, string> = {
+	breed: "Raça",
+	size: "Porte",
+	species: "Espécie",
+	gender: "Sexo",
+	color: "Cor",
+} satisfies Record<FilterableField, string>;
