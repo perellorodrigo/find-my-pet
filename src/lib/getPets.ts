@@ -5,18 +5,9 @@ import {
 	PetResponseItem,
 	PetSkeleton,
 } from "@/lib/types";
-import { Asset, UnresolvedLink, createClient } from "contentful";
-import { createClient as createKVClient } from "@vercel/kv";
-
-if (!process.env.KV_REST_API_TOKEN || !process.env.KV_REST_API_URL) {
-	throw new Error("Missing KV API keys");
-}
-
-export const kv = createKVClient({
-	token: process.env.KV_REST_API_TOKEN,
-	url: process.env.KV_REST_API_URL,
-	cache: "no-store",
-});
+import { Asset, UnresolvedLink } from "contentful";
+import contentfulClient from "./contentful-client";
+import { redisClient } from "./redis-client";
 
 export type Filter = {
 	[key in FilterableField]?: string[];
@@ -27,20 +18,6 @@ export type GetPetParams = {
 	filters?: Filter;
 	searchTerm?: string;
 };
-
-if (
-	!process.env.CONTENTFUL_SPACE_ID ||
-	!process.env.CONTENTFUL_DELIVERY_API_KEY
-) {
-	throw new Error("Missing Contentful API keys");
-}
-
-const client = createClient({
-	// This is the space ID. A space is like a project folder in Contentful terms
-	space: process.env.CONTENTFUL_SPACE_ID,
-	// This is the access token for this space. Normally you get both ID and the token in the Contentful web app
-	accessToken: process.env.CONTENTFUL_DELIVERY_API_KEY,
-});
 
 function isAsset(
 	obj: UnresolvedLink<"Asset"> | Asset<undefined, string>
@@ -73,14 +50,14 @@ export async function getPets({
 
 	const cacheKey = JSON.stringify(queryObj);
 
-	const cached = await kv.get<PetResponse>(cacheKey);
+	const cached = await redisClient.get<PetResponse>(cacheKey);
 
 	if (cached) {
 		console.log("Cache hit for", cacheKey);
 		return cached;
 	}
 
-	const results = await client.getEntries<PetSkeleton>(queryObj);
+	const results = await contentfulClient.getEntries<PetSkeleton>(queryObj);
 
 	const minifiedResults = results.items.map((item) => {
 		const { sys, fields } = item;
@@ -115,7 +92,7 @@ export async function getPets({
 	};
 
 	console.log("Setting cache for", cacheKey);
-	await kv.set(cacheKey, JSON.stringify(returnObj), {
+	await redisClient.set(cacheKey, JSON.stringify(returnObj), {
 		ex: 60 * 60 * 3, // 3 hours
 	});
 

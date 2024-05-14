@@ -2,60 +2,23 @@
 import {
 	ChangeEventHandler,
 	MouseEventHandler,
-	PropsWithChildren,
-	PropsWithoutRef,
 	useEffect,
 	useMemo,
 	useState,
 } from "react";
-import Heading from "./Heading";
 import { ComboBox } from "./ComboBox";
-import Image from "next/image";
-import type { Asset, AssetDetails, Entry, EntryCollection } from "contentful";
-import {
-	PetResponse,
-	PetResponseItem,
-	filterableFields,
-	type FilterableField,
-} from "@/lib/types";
-import {
-	documentToReactComponents,
-	Options as RichTextOptions,
-} from "@contentful/rich-text-react-renderer";
-import { BLOCKS, Document } from "@contentful/rich-text-types";
+import { LABEL_VALUES, PetResponse, type FilterableField } from "@/lib/types";
+
 import { usePathname, useSearchParams } from "next/navigation";
 import { Button } from "./ui/button";
-import { cn, getFiltersFromResults } from "@/lib/utils";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { getFiltersFromResults } from "@/lib/utils";
+import { Loader2, Share2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Input } from "./ui/input";
 import type { GetPetParams } from "@/lib/getPets";
 import { QueryFunction, useInfiniteQuery } from "@tanstack/react-query";
-
-const LABEL_VALUES: Record<string, string> = {
-	breed: "Raça",
-	size: "Porte",
-	species: "Espécie",
-	gender: "Sexo",
-	color: "Cor",
-} satisfies Record<FilterableField, string>;
-
-function CardInfo({
-	label,
-	value,
-}: PropsWithChildren<{
-	label: string;
-	value: string;
-}>) {
-	return (
-		<div className="inline-flex items-center">
-			<p className="text-sm break-all font-light text-primary">
-				<span className="font-semibold">{label}: </span>
-				{value}
-			</p>
-		</div>
-	);
-}
+import React from "react";
+import { PetCard } from "./PetCard";
 
 const getPets: QueryFunction<
 	PetResponse,
@@ -101,61 +64,6 @@ const getPets: QueryFunction<
 	};
 };
 
-const options: RichTextOptions = {
-	renderNode: {
-		[BLOCKS.HEADING_1]: (_, children) => (
-			<Heading level="h1">{children}</Heading>
-		),
-		[BLOCKS.HEADING_2]: (_, children) => (
-			<Heading level="h2">{children}</Heading>
-		),
-		[BLOCKS.HEADING_3]: (_, children) => (
-			<Heading level="h3">{children}</Heading>
-		),
-		[BLOCKS.HEADING_4]: (_, children) => (
-			<Heading level="h4">{children}</Heading>
-		),
-		[BLOCKS.HEADING_5]: (_, children) => (
-			<Heading level="h5">{children}</Heading>
-		),
-		[BLOCKS.HEADING_6]: (_, children) => (
-			<Heading level="h6">{children}</Heading>
-		),
-		[BLOCKS.PARAGRAPH]: (node, children) => (
-			<p className="text-neutral-600 text-sm">{children}</p>
-		),
-	},
-};
-
-function RichTextRenderer({
-	content,
-	className,
-}: PropsWithoutRef<{ content: Document; className: string }>) {
-	return (
-		<div className={className}>
-			{documentToReactComponents(content, options)}
-		</div>
-	);
-}
-
-function CardBasicInfo({ item }: { item: PetResponseItem }) {
-	return filterableFields.map((field) => {
-		const value = item.fields[field];
-
-		if (!value) {
-			return null;
-		}
-
-		return (
-			<CardInfo
-				key={field}
-				label={LABEL_VALUES[field]}
-				value={value}
-			/>
-		);
-	});
-}
-
 function getFiltersForSearch(filters: Record<string, Set<string>>) {
 	return Object.entries(filters).reduce<{
 		[key in FilterableField]?: string[];
@@ -191,7 +99,6 @@ export function SearchView({
 	allFilters: Record<string, string[]>;
 }) {
 	const [searchTerm, setSearchTerm] = useState("");
-
 	const searchParams = useSearchParams();
 	const { toast } = useToast();
 
@@ -334,39 +241,7 @@ export function SearchView({
 	}, [allFilters, results]);
 
 	return (
-		<div className="z-10 w-full max-w-7xl container space-y-4 py-8">
-			<Heading level="h1" className="my-4 text-center">
-				Encontre seu Pet (Canoas RS)
-			</Heading>
-			<p className="text-center text-neutral-600">
-				Abrigando um Pet? Contate nosso instagram para postarmos
-				aqui:
-				<a
-					className={cn(
-						"text-primary underline-offset-4 hover:underline",
-						"inline-flex whitespace-nowrap text-md font-medium ml-2 ring-offset-background transition-colors",
-						"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-					)}
-					href={
-						"https://www.instagram.com/encontreseupet.canoas/"
-					}
-				>
-					@encontreseupet.canoas
-				</a>
-			</p>
-			<p className="text-center text-neutral-600">
-				<AlertTriangle className="inline h-5 w-5  mr-2" />
-				Estamos adicionando mais animais constantemente, se não
-				achar o seu pet, não perca a esperança e volte mais tarde{" "}
-			</p>
-
-			<p className="text-center text-neutral-600">
-				Os filtros não são exatos, selecione mais de um para ficar
-				mais fácil de encontrar o que procura. Atualmente temos{" "}
-				{allTotal} pets cadastrados.
-			</p>
-
-			<div className="flex w-full max-w-2xl mx-auto items-center space-x-2"></div>
+		<div className="w-full space-y-4">
 			<div className="flex flex-col space-y-2">
 				<div className="flex flex-grow space-x-2 relative">
 					<Input
@@ -421,79 +296,48 @@ export function SearchView({
 					>
 						Limpar Filtros
 					</Button>
-					<Button onClick={handleCopySearch} variant={"link"}>
-						Compartilhar Busca
+					<Button onClick={handleCopySearch} variant={"outline"}>
+						<Share2 className="mr-2" /> Compartilhar Busca
 					</Button>
 				</div>
 			</div>
-			<div>
-				<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-4">
-					{isLoadingQuery && (
-						<div className="flex justify-center items-center col-span-2 sm:col-span-3 lg:col-span-4">
-							<Loader2 className="h-8 w-8 animate-spin" />
-						</div>
-					)}
-					{results.map((item) => {
-						const pictures = item.fields.pictures;
 
-						const firstPic = pictures?.[0] as Asset;
-						const assetDetails = firstPic?.fields.file
-							?.details as AssetDetails;
+			<p className="text-neutral-600">
+				{isLoadingQuery ? (
+					"Carregando..."
+				) : (
+					<>
+						<span className="font-bold">{totalResults} </span>
+						Pets encontrados
+					</>
+				)}
+			</p>
 
-						const width = assetDetails?.image?.width || 300;
-						const height = assetDetails?.image?.height || 300;
-						return (
-							<div
-								key={item.sys.id}
-								className={`flex flex-col rounded-lg shadow-md overflow-hidden bg-white relative`}
-							>
-								{firstPic && (
-									<Image
-										src={`https:${firstPic.fields.file?.url}`}
-										alt=""
-										width={width}
-										height={height}
-										sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-									/>
-								)}
+			<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-4">
+				{isLoadingQuery && (
+					<div className="flex justify-center items-center col-span-2 sm:col-span-3 lg:col-span-4">
+						<Loader2 className="h-8 w-8 animate-spin" />
+					</div>
+				)}
+				{results.map((pet) => (
+					<PetCard key={pet.sys.id} pet={pet} />
+				))}
+			</div>
 
-								<div className="p-4 flex flex-col space-y-2 justify-between flex-1">
-									<div className="flex flex-col">
-										<CardBasicInfo item={item} />
-
-										<RichTextRenderer
-											content={
-												item.fields
-													.description
-											}
-											className="mt-2 space-y-1"
-										/>
-									</div>
-
-									{/* <p className="text-xs text-neutral-600 pt-6">
-										ID: {item.sys.id}
-									</p> */}
-								</div>
-							</div>
-						);
-					})}
-				</div>
-
-				<div className="flex flex-col justify-center items-center w-full mt-4 space-y-2">
-					<p>
-						{results.length} de {totalResults} resultados
-					</p>
-					<Button
-						onClick={handleLoadMore}
-						variant={"outline"}
-						disabled={
-							results.length === totalResults ||
-							isFetchingNextPage
-						}
-					>
-						Carregar mais
-					</Button>
-				</div>
+			<div className="flex flex-col justify-center items-center w-full mt-4 space-y-2">
+				<p>
+					{results.length} de {totalResults} resultados
+				</p>
+				<Button
+					onClick={handleLoadMore}
+					variant={"outline"}
+					disabled={
+						results.length === totalResults ||
+						isFetchingNextPage
+					}
+				>
+					Carregar mais
+				</Button>
 			</div>
 		</div>
 	);

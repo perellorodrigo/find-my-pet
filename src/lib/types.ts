@@ -16,6 +16,14 @@ export type PetSkeleton = {
 
 export type PetItem = Entry<PetSkeleton, undefined, string>;
 
+export type SiteConfigSkeleton = {
+	contentTypeId: "siteConfig";
+	fields: {
+		title: EntryFieldTypes.Text;
+		introRichText: EntryFieldTypes.RichText;
+	};
+};
+
 export type PetResponseItem = {
 	sys: {
 		id: string;
@@ -46,3 +54,11 @@ export const filterableFields = [
 ] as const;
 
 export type FilterableField = (typeof filterableFields)[number];
+
+export const LABEL_VALUES: Record<string, string> = {
+	breed: "Raça",
+	size: "Porte",
+	species: "Espécie",
+	gender: "Sexo",
+	color: "Cor",
+} satisfies Record<FilterableField, string>;
