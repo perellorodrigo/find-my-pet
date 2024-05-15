@@ -1,20 +1,20 @@
 "use client";
 
+import React from "react";
 import Image from "next/image";
 import type { Asset, AssetDetails } from "contentful";
 
-import ContentfulRichTextRenderer from "./ContentfulRichText";
+import { filterableFields, LABEL_VALUES, PetResponseItem } from "@/lib/types";
 import {
 	Carousel,
-	CarouselApi,
 	CarouselContent,
 	CarouselDots,
 	CarouselItem,
 	CarouselNext,
 	CarouselPrevious,
 } from "@/components/ui/carousel";
-import React, { useEffect, useState } from "react";
-import { LABEL_VALUES, PetResponseItem, filterableFields } from "@/lib/types";
+
+import ContentfulRichTextRenderer from "./ContentfulRichText";
 
 function CardBasicInfo({ item }: { item: PetResponseItem }) {
 	return filterableFields.map((field) => {
@@ -27,9 +27,7 @@ function CardBasicInfo({ item }: { item: PetResponseItem }) {
 		return (
 			<div className="inline-flex items-center" key={item.sys.id}>
 				<p className="text-sm break-all font-light text-primary">
-					<span className="font-semibold">
-						{LABEL_VALUES[field]}:{" "}
-					</span>
+					<span className="font-semibold">{LABEL_VALUES[field]}: </span>
 					{value}
 				</p>
 			</div>
@@ -50,8 +48,7 @@ function PetCard({ pet }: { pet: PetResponseItem }) {
 					{pictures?.map((pic) => {
 						const asset = pic as Asset;
 
-						const assetDetails = asset?.fields.file
-							?.details as AssetDetails;
+						const assetDetails = asset?.fields.file?.details as AssetDetails;
 
 						const width = assetDetails?.image?.width || 300;
 						const height = assetDetails?.image?.height || 300;
