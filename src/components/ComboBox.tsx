@@ -4,6 +4,7 @@ import * as React from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { Button } from "@/components/ui/button";
 import {
 	Command,
@@ -13,14 +14,12 @@ import {
 	CommandItem,
 	CommandList,
 } from "@/components/ui/command";
+import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import {
 	Popover,
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/popover";
-import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
-
-import { useMediaQuery } from "@/hooks/use-media-query";
 
 function ComboOptions({
 	values,
@@ -44,16 +43,12 @@ function ComboOptions({
 							key={value}
 							value={value}
 							onSelect={() => onSelect(value)}
-							disabled={
-								!selectedValues.has(value) && isDisabled
-							}
+							disabled={!selectedValues.has(value) && isDisabled}
 						>
 							<Check
 								className={cn(
-									"mr-2 h-4 w-4",
-									selectedValues.has(value)
-										? "opacity-100"
-										: "opacity-0"
+									"mr-2 size-4",
+									selectedValues.has(value) ? "opacity-100" : "opacity-0"
 								)}
 							/>
 							{value}
@@ -84,8 +79,8 @@ export function ComboBox({
 		selectedArr.length === 0
 			? prompt
 			: selectedArr.length === 1
-			? selectedArr[0]
-			: `${selectedArr[0]} (+${selectedArr.length - 1})`;
+				? selectedArr[0]
+				: `${selectedArr[0]} (+${selectedArr.length - 1})`;
 
 	if (isDesktop) {
 		return (
@@ -98,7 +93,7 @@ export function ComboBox({
 						className="justify-between w-full"
 					>
 						{label}
-						<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+						<ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
 					</Button>
 				</PopoverTrigger>
 				<PopoverContent className="p-0">
@@ -116,12 +111,9 @@ export function ComboBox({
 	return (
 		<Drawer open={open} onOpenChange={setOpen}>
 			<DrawerTrigger asChild>
-				<Button
-					variant="outline"
-					className="justify-between w-full"
-				>
+				<Button variant="outline" className="justify-between w-full">
 					{label}
-					<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+					<ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
 				</Button>
 			</DrawerTrigger>
 			<DrawerContent>

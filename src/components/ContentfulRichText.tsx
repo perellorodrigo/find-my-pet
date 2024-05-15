@@ -1,11 +1,13 @@
 import { PropsWithoutRef } from "react";
-import Heading from "./Heading";
 import {
 	documentToReactComponents,
 	Options as RichTextOptions,
 } from "@contentful/rich-text-react-renderer";
 import { BLOCKS, Document, INLINES } from "@contentful/rich-text-types";
+
 import { cn } from "@/lib/utils";
+
+import Heading from "./Heading";
 
 const options: RichTextOptions = {
 	renderNode: {

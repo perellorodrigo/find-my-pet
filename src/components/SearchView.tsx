@@ -1,24 +1,25 @@
 "use client";
-import {
+
+import React, {
 	ChangeEventHandler,
 	MouseEventHandler,
 	useEffect,
 	useMemo,
 	useState,
 } from "react";
-import { ComboBox } from "./ComboBox";
-import { LABEL_VALUES, PetResponse, type FilterableField } from "@/lib/types";
-
 import { usePathname, useSearchParams } from "next/navigation";
-import { Button } from "./ui/button";
-import { getFiltersFromResults } from "@/lib/utils";
-import { Loader2, Share2 } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
-import { Input } from "./ui/input";
-import type { GetPetParams } from "@/lib/getPets";
 import { QueryFunction, useInfiniteQuery } from "@tanstack/react-query";
-import React from "react";
+import { Loader2, Share2 } from "lucide-react";
+
+import type { GetPetParams } from "@/lib/getPets";
+import { LABEL_VALUES, PetResponse, type FilterableField } from "@/lib/types";
+import { getFiltersFromResults } from "@/lib/utils";
+import { useToast } from "@/components/ui/use-toast";
+
+import { ComboBox } from "./ComboBox";
 import { PetCard } from "./PetCard";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
 
 const getPets: QueryFunction<
 	PetResponse,
@@ -197,15 +198,12 @@ export function SearchView({
 						text: "",
 						url: shareURL,
 					})
-					.catch((error) =>
-						console.log("Error sharing:", error)
-					);
+					.catch((error) => console.log("Error sharing:", error));
 			} else {
 				navigator.clipboard.writeText(shareURL);
 				toast({
 					title: "Link copiado",
-					description:
-						"O link foi copiado para a área de transferência",
+					description: "O link foi copiado para a área de transferência",
 				});
 			}
 		} catch (error) {
@@ -243,7 +241,7 @@ export function SearchView({
 	return (
 		<div className="w-full space-y-4">
 			<div className="flex flex-col space-y-2">
-				<div className="flex flex-grow space-x-2 relative">
+				<div className="flex grow space-x-2 relative">
 					<Input
 						type="search"
 						enterKeyHint="search"
@@ -255,45 +253,30 @@ export function SearchView({
 								e.currentTarget?.blur?.();
 							}
 						}}
-						className="flex-grow text-md"
+						className="grow text-md"
 					/>
 				</div>
 				<div className="flex flex-wrap gap-2">
 					{Object.entries(filtersWithDisabled)
 						.filter((v) => v[1].length > 1)
 						.map((filterValue) => {
-							const [fieldName, allValues] =
-								filterValue as [
-									FilterableField,
-									[string, boolean][]
-								];
+							const [fieldName, allValues] = filterValue as [
+								FilterableField,
+								[string, boolean][],
+							];
 
 							return (
-								<div
-									key={fieldName}
-									className="flex-grow"
-								>
+								<div key={fieldName} className="grow">
 									<ComboBox
-										onSelect={handleSelectedValues(
-											fieldName
-										)}
-										selectedValues={
-											selectedFilters?.[
-												fieldName
-											] || new Set()
-										}
-										prompt={
-											LABEL_VALUES[fieldName]
-										}
+										onSelect={handleSelectedValues(fieldName)}
+										selectedValues={selectedFilters?.[fieldName] || new Set()}
+										prompt={LABEL_VALUES[fieldName]}
 										values={Array.from(allValues)}
 									/>
 								</div>
 							);
 						})}
-					<Button
-						onClick={handleClearFilters}
-						variant={"destructive"}
-					>
+					<Button onClick={handleClearFilters} variant={"destructive"}>
 						Limpar Filtros
 					</Button>
 					<Button onClick={handleCopySearch} variant={"outline"}>
@@ -316,7 +299,7 @@ export function SearchView({
 			<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-4">
 				{isLoadingQuery && (
 					<div className="flex justify-center items-center col-span-2 sm:col-span-3 lg:col-span-4">
-						<Loader2 className="h-8 w-8 animate-spin" />
+						<Loader2 className="size-8 animate-spin" />
 					</div>
 				)}
 				{results.map((pet) => (
@@ -331,10 +314,7 @@ export function SearchView({
 				<Button
 					onClick={handleLoadMore}
 					variant={"outline"}
-					disabled={
-						results.length === totalResults ||
-						isFetchingNextPage
-					}
+					disabled={results.length === totalResults || isFetchingNextPage}
 				>
 					Carregar mais
 				</Button>
