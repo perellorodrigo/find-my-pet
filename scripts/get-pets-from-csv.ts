@@ -1,11 +1,16 @@
-import { Asset, createClient } from "contentful-management";
 import { createReadStream } from "fs";
-import * as csv from "@fast-csv/parse";
 import * as path from "path";
+import * as csv from "@fast-csv/parse";
 import { Entry } from "contentful";
-import { BLOCKS, Mark, Document } from "@contentful/rich-text-types";
-import { PetSkeleton } from "../src/lib/types";
+import { Asset, createClient } from "contentful-management";
 import * as dotenv from "dotenv";
+
+import {
+	BlockList,
+	buildContentfulRichTextBlocks,
+} from "../src/lib/buildContentfulRichTextBlocks";
+import { PetSkeleton } from "../src/lib/types";
+
 dotenv.config({ path: __dirname + "/.env" });
 
 //Espécie	Fotos	Telefone para Contato ou Instagram	Endereço	Raça	Porte	Sexo	Cor	Informações adicionais	Email Address
@@ -24,37 +29,6 @@ type CSV_Row = {
 };
 
 type PetFields = Entry<PetSkeleton>["fields"];
-
-export type NodeTypeKeys = keyof typeof BLOCKS;
-
-export type BlockList = Array<{
-	nodeType: NodeTypeKeys;
-	value: string;
-	marks: Mark[];
-}>;
-
-export const buildContentfulRichTextBlocks = (listOfBlocks: BlockList) => {
-	const content = listOfBlocks.map(({ marks, nodeType, value }) => {
-		return {
-			nodeType: BLOCKS[nodeType],
-			content: [
-				{
-					nodeType: "text",
-					value,
-					marks,
-					data: {},
-				},
-			],
-			data: {},
-		};
-	});
-
-	return {
-		data: {},
-		nodeType: BLOCKS.DOCUMENT,
-		content,
-	} as Document;
-};
 
 const readFromCSV = async (filePath: string): Promise<CSV_Row[]> => {
 	let currentRows: CSV_Row[] = [];
@@ -116,9 +90,7 @@ const getPetsFromCsv = async () => {
 			);
 
 			try {
-				const queryParams = new URLSearchParams(
-					photo.split("?")[1]
-				);
+				const queryParams = new URLSearchParams(photo.split("?")[1]);
 				const photoId = queryParams.get("id");
 				const downloadURL = `https://drive.usercontent.google.com/download?id=${photoId}`;
 
@@ -128,16 +100,14 @@ const getPetsFromCsv = async () => {
 
 				const contentType =
 					fileHead.headers.get("content-type") || "image/jpeg";
-				const contentLength =
-					fileHead.headers.get("content-length");
+				const contentLength = fileHead.headers.get("content-length");
 
 				if (contentLength === "0") {
 					console.log("Skipping empty file");
 					continue;
 				}
 
-				const fileExtension =
-					contentType.split("/").at(-1) || "jpg";
+				const fileExtension = contentType.split("/").at(-1) || "jpg";
 
 				const asset = await environment.createAsset({
 					fields: {
@@ -154,23 +124,15 @@ const getPetsFromCsv = async () => {
 					},
 				});
 
-				const uploadedAsset = await asset.processForLocale(
-					"en-US",
-					{
-						processingCheckWait: 1000,
-					}
-				);
+				const uploadedAsset = await asset.processForLocale("en-US", {
+					processingCheckWait: 1000,
+				});
 
 				await uploadedAsset.publish();
 
 				uploadedAssets.push(uploadedAsset);
 			} catch (error) {
-				console.error(
-					"Error uploading asset: ",
-					photo,
-					"\n Error: ",
-					error
-				);
+				console.error("Error uploading asset: ", photo, "\n Error: ", error);
 			}
 		}
 
