@@ -1,28 +1,23 @@
 "use client";
 
-import { ChangeEvent, useState } from "react";
-import Image from "next/image";
+import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
-import { Asset, AssetDetails } from "contentful";
-import { FileCheck2Icon } from "lucide-react";
-import { FormProvider, set, useForm } from "react-hook-form";
-import { z, ZodType } from "zod"; // Add new import
+import { FormProvider, useForm } from "react-hook-form";
+import { z } from "zod"; // Add new import
 
-import { PetResponseItem, PetSkeleton } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import Dropzone from "@/components/ui/dropzone";
 import {
 	FormControl,
-	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import Heading from "@/components/Heading";
 
 import { createBatchUploadIntent, uploadToContentful } from "./actions";
@@ -35,7 +30,7 @@ const ACCEPTED_IMAGE_TYPES = [
 	"image/webp",
 ];
 
-const MAX_FILE_SIZE = 1000000;
+const MAX_FILE_SIZE = 10000000;
 const FormSchema = z.object({
 	contactDetails: z.string(),
 	address: z.string().min(1),
@@ -45,7 +40,12 @@ const FormSchema = z.object({
 		.refine((files) => files && files.length > 0, "Image is required.")
 		.refine((files) => {
 			return (
-				files && Array.from(files).every((f: File) => f.size <= MAX_FILE_SIZE)
+				files &&
+				Array.from(files).every((f: File) => {
+					console.log("File size: ", f.size, f);
+
+					return f.size <= MAX_FILE_SIZE;
+				})
 			);
 		}, `Max file size is 10MB.`)
 		.refine(
@@ -121,6 +121,11 @@ export default function BatchUploader() {
 			console.error("onError uploadToContentful", error);
 		},
 	});
+
+	const [progress, setProgress] = useState<{
+		current: number;
+		total: number;
+	} | null>();
 
 	const isSubmitting =
 		uploadIntentMutation.isPending ||
@@ -201,10 +206,20 @@ export default function BatchUploader() {
 
 		// for all successful intents, upload the files to S3
 		for (const [index, response] of result.entries()) {
+			setProgress({
+				current: index - 0.5 + 1,
+				total: result.length,
+			});
+
 			if (response.status === "fulfilled") {
 				const s3Result = await uploadS3Mutation.mutateAsync({
 					...response.value,
 					file: filesArray[index],
+				});
+
+				setProgress({
+					current: index + 1,
+					total: result.length,
 				});
 
 				await uploadToContentfulMutation.mutateAsync({
@@ -223,6 +238,8 @@ export default function BatchUploader() {
 				});
 			}
 		}
+
+		form.resetField("files");
 	};
 
 	return (
@@ -307,11 +324,15 @@ export default function BatchUploader() {
 							</FormItem>
 						)}
 					/>
-					{form.watch("files") && (
-						<div className="flex items-center justify-center gap-3 p-4 relative">
-							<FileCheck2Icon className="size-4" />
+					{progress && (
+						<div className="flex flex-col items-center gap-4">
+							<Progress
+								value={(progress.current / progress.total) * 100}
+								className="w-full [&>*]:duration-1000"
+							/>
 							<p className="text-sm font-medium">
-								{form.watch("files")?.[0]?.name}
+								{Math.floor(progress.current)} de {progress.total} imagens
+								enviadas
 							</p>
 						</div>
 					)}
