@@ -171,7 +171,7 @@ function getEntryFields({
 			"en-US": (aiResponse.species || "").trim(),
 		},
 		breed: {
-			"en-US": "Vira Lata".trim(),
+			"en-US": (aiResponse.breed || "").trim(),
 		},
 		color: {
 			"en-US": (aiResponse.color || "").trim(),
