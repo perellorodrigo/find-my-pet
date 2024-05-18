@@ -28,29 +28,36 @@ import Heading from "@/components/Heading";
 import { createBatchUploadIntent, uploadToContentful } from "./actions";
 
 // list of image mime types
-const imageTypes = ["image/jpeg", "image/pjpeg", "image/png", "image/webp"];
+const ACCEPTED_IMAGE_TYPES = [
+	"image/jpeg",
+	"image/pjpeg",
+	"image/png",
+	"image/webp",
+];
 
-const defaultValues: {
-	files: FileList | null;
-	contactDetails: string;
-	address: string;
-	additionalInfo: string;
-	apiKey: string;
-} = {
-	files: null,
-	contactDetails: "",
-	address: "",
-	additionalInfo: "",
-	apiKey: "",
-};
-
-const FormSchema: ZodType<typeof defaultValues> = z.object({
+const MAX_FILE_SIZE = 1000000;
+const FormSchema = z.object({
 	contactDetails: z.string(),
 	address: z.string().min(1),
 	additionalInfo: z.string().min(8, { message: "additionalInfo is too short" }),
-	files: z.instanceof(FileList).nullable(),
-	apiKey: z.string().min(1),
+	files: z
+		.custom<FileList>()
+		.refine((files) => files?.length > 0, "Image is required.")
+		.refine(
+			(files) => Array.from(files).every((f: File) => f.size <= MAX_FILE_SIZE),
+			`Max file size is 10MB.`
+		)
+		.refine(
+			(files) =>
+				Array.from(files).every((f: File) =>
+					ACCEPTED_IMAGE_TYPES.includes(f.type)
+				),
+			".jpg, .jpeg, .png and .webp files are accepted."
+		),
+	apiKey: z.string(),
 });
+
+type FormValues = z.infer<typeof FormSchema>;
 
 async function uploadToS3({
 	file,
@@ -118,8 +125,7 @@ export default function BatchUploader() {
 		uploadS3Mutation.isPending ||
 		uploadToContentfulMutation.isPending;
 
-	const form = useForm({
-		defaultValues,
+	const form = useForm<FormValues>({
 		shouldFocusError: true,
 		shouldUnregister: false,
 		shouldUseNativeValidation: false,
@@ -128,7 +134,7 @@ export default function BatchUploader() {
 
 	async function handleOnDrop(files: FileList | null) {
 		if (files && files.length > 0) {
-			const allowedType = { name: "image", types: imageTypes };
+			const allowedType = { name: "image", types: ACCEPTED_IMAGE_TYPES };
 			const everyFileValid = Array.from(files).every((file) =>
 				allowedType.types.includes(file.type)
 			);
@@ -143,7 +149,7 @@ export default function BatchUploader() {
 				form.setValue("files", files);
 			}
 		} else {
-			form.setValue("files", null);
+			form.resetField("files");
 			form.setError("files", {
 				message: "File is required",
 				type: "typeError",
@@ -157,7 +163,7 @@ export default function BatchUploader() {
 		contactDetails,
 		files,
 		apiKey,
-	}: typeof defaultValues) => {
+	}: FormValues) => {
 		if (!files) {
 			form.setError("files", {
 				message: "File is required",
@@ -299,7 +305,7 @@ export default function BatchUploader() {
 										{...field}
 										dropMessage="Largue a imagem aqui ou clique para selecionar um arquivo."
 										handleOnDrop={handleOnDrop}
-										allowedTypes={imageTypes.join(",")}
+										allowedTypes={ACCEPTED_IMAGE_TYPES.join(",")}
 										multiple
 									/>
 								</FormControl>
