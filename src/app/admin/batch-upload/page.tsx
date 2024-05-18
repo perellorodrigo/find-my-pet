@@ -42,13 +42,15 @@ const FormSchema = z.object({
 	additionalInfo: z.string().min(8, { message: "additionalInfo is too short" }),
 	files: z
 		.custom<FileList>()
-		.refine((files) => files?.length > 0, "Image is required.")
-		.refine(
-			(files) => Array.from(files).every((f: File) => f.size <= MAX_FILE_SIZE),
-			`Max file size is 10MB.`
-		)
+		.refine((files) => files && files.length > 0, "Image is required.")
+		.refine((files) => {
+			return (
+				files && Array.from(files).every((f: File) => f.size <= MAX_FILE_SIZE)
+			);
+		}, `Max file size is 10MB.`)
 		.refine(
 			(files) =>
+				files &&
 				Array.from(files).every((f: File) =>
 					ACCEPTED_IMAGE_TYPES.includes(f.type)
 				),
@@ -164,14 +166,6 @@ export default function BatchUploader() {
 		files,
 		apiKey,
 	}: FormValues) => {
-		if (!files) {
-			form.setError("files", {
-				message: "File is required",
-				type: "typeError",
-			});
-			return;
-		}
-
 		const filesArray = Array.from(files);
 
 		const result = await uploadIntentMutation.mutateAsync({
