@@ -30,7 +30,7 @@ const ACCEPTED_IMAGE_TYPES = [
 	"image/webp",
 ];
 
-const BATCH_SIZE = 5;
+const BATCH_SIZE = 8;
 
 const MAX_FILE_SIZE = 10000000;
 const FormSchema = z.object({
@@ -96,7 +96,7 @@ async function uploadToS3({
 function assertAllFulfilled<T>(
 	result: PromiseSettledResult<T>[]
 ): result is PromiseFulfilledResult<T>[] {
-	return result.some((r) => r.status === "rejected");
+	return result.every((r) => r.status === "fulfilled");
 }
 
 export default function BatchUploader() {
@@ -222,7 +222,7 @@ export default function BatchUploader() {
 		// Helper function to update progress state
 		const tickProgress = (newVal?: number) =>
 			setProgress((currentVal) => ({
-				current: newVal ?? (currentVal?.current || 0) + 0.5,
+				current: newVal ?? (currentVal?.current || 0) + 1,
 				total: result.length,
 			}));
 
@@ -233,12 +233,13 @@ export default function BatchUploader() {
 
 			const batchResult = await Promise.allSettled(
 				batch.map(async (response, index) => {
+					const actualIndex = i + index;
+
 					if (response.status === "fulfilled") {
 						const s3Result = await uploadS3Mutation.mutateAsync({
 							...response.value,
-							file: filesArray[index],
+							file: filesArray[actualIndex],
 						});
-						tickProgress();
 
 						await uploadToContentfulMutation.mutateAsync({
 							apiKey,
@@ -247,9 +248,9 @@ export default function BatchUploader() {
 							contactDetails,
 							images: [
 								{
-									contentLength: filesArray[index].size.toString(),
-									contentType: filesArray[index].type,
-									fileName: filesArray[index].name,
+									contentLength: filesArray[actualIndex].size.toString(),
+									contentType: filesArray[actualIndex].type,
+									fileName: filesArray[actualIndex].name,
 									url: s3Result,
 								},
 							],
