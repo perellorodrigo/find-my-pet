@@ -1,16 +1,18 @@
 import type { ChatCompletionCreateParamsNonStreaming } from "openai/resources/index.mjs";
 
 const jsonMock = {
+	gender:
+		"<the gender of the pet if written in the image, macho for male, fêmea for female, and indefinido if you can't identify.",
 	species:
 		"<The species of the pet, if dog return Cachorro, if cat return Gato>",
 	text: "<The full text description of the pet, combining all the requested details>",
 	predominant_color: "<The predominant color of the pet>",
 	additional_colors: "<Any additional colors of the pet>",
 	breed:
-		"<The pet breed, if mixed, output in the format Vira Lata / <predominant breed that is mixed with>>",
+		"<The pet breed, if mixed, output in the format Vira Lata / <predominant breed that is mixed with>. Be assertive, do not use words like possibly or maybe!>",
 	color:
 		"<The color of the pet, if two provide in the format <predominant color> e <secondary color>, if three or more, provide them separated by a slash: like Black / White / Grey>. Always capitalize the first letter of each color.>",
-	size: "<The size of the pet, PP for very small, P for small, M for medium and G for big>",
+	size: "<The size of the pet, PP for very small, P for small, M for medium and G for big. Do not return a combination of sizes, be assertive>",
 	eye_color: "<The eye color of the pet, don't specify expression>",
 	fur_length: "<The fur length of the pet>",
 	fur_pattern:

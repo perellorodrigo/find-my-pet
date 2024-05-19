@@ -183,7 +183,10 @@ function getEntryFields({
 			"en-US": (aiResponse?.size || "").trim(),
 		},
 		gender: {
-			"en-US": "indefinido",
+			"en-US":
+				aiResponse?.gender && ["macho", "fêmea"].includes(aiResponse.gender)
+					? aiResponse.gender
+					: "indefinido",
 		},
 	};
 
