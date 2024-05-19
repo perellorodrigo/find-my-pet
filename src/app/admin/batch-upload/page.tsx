@@ -30,13 +30,13 @@ const ACCEPTED_IMAGE_TYPES = [
 	"image/webp",
 ];
 
-const BATCH_SIZE = 8;
+const BATCH_SIZE = 5;
 
 const MAX_FILE_SIZE = 10000000;
 const FormSchema = z.object({
 	contactDetails: z.string(),
 	address: z.string().min(1),
-	additionalInfo: z.string().min(8, { message: "additionalInfo is too short" }),
+	additionalInfo: z.string(),
 	files: z
 		.custom<FileList>()
 		.refine((files) => files && files.length > 0, "Image is required.")
@@ -97,6 +97,12 @@ function assertAllFulfilled<T>(
 	result: PromiseSettledResult<T>[]
 ): result is PromiseFulfilledResult<T>[] {
 	return result.every((r) => r.status === "fulfilled");
+}
+
+function isPromiseFulfilled<T>(
+	result: PromiseSettledResult<T>
+): result is PromiseFulfilledResult<T> {
+	return result.status === "fulfilled";
 }
 
 export default function BatchUploader() {
@@ -217,6 +223,8 @@ export default function BatchUploader() {
 				message: `Error creating upload intent for files: \n${rejectedIntents.map((f) => `${f.fileName} : ${f.reason}`).join("\n")}`,
 				type: "validate",
 			});
+
+			return;
 		}
 
 		// Helper function to update progress state
@@ -235,34 +243,38 @@ export default function BatchUploader() {
 				batch.map(async (response, index) => {
 					const actualIndex = i + index;
 
-					if (response.status === "fulfilled") {
-						const s3Result = await uploadS3Mutation.mutateAsync({
-							...response.value,
-							file: filesArray[actualIndex],
-						});
+					const file = filesArray[actualIndex];
 
-						await uploadToContentfulMutation.mutateAsync({
-							apiKey,
-							additionalInfo,
-							address,
-							contactDetails,
-							images: [
-								{
-									contentLength: filesArray[actualIndex].size.toString(),
-									contentType: filesArray[actualIndex].type,
-									fileName: filesArray[actualIndex].name,
-									url: s3Result,
-								},
-							],
-						});
+					const fileUrl = await uploadS3Mutation.mutateAsync({
+						...response.value,
+						file,
+					});
 
-						tickProgress();
-					}
+					tickProgress();
+
+					return {
+						file,
+						fileUrl,
+					};
 				})
 			);
 
-			if (batchResult.some((r) => r.status === "rejected")) {
+			const sucessfulBatch = batchResult.filter(isPromiseFulfilled);
+			if (sucessfulBatch.length === 0) {
 				console.error("Error uploading batch", batchResult);
+			} else {
+				await uploadToContentfulMutation.mutateAsync({
+					apiKey,
+					additionalInfo,
+					address,
+					contactDetails,
+					images: sucessfulBatch.map(({ value: { file, fileUrl } }) => ({
+						contentLength: file.size.toString(),
+						contentType: file.type,
+						fileName: file.name,
+						url: fileUrl,
+					})),
+				});
 			}
 
 			tickProgress(i + batch.length);

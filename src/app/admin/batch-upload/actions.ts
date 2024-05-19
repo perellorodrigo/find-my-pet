@@ -211,35 +211,37 @@ export async function uploadToContentful({
 
 	const environment = await client.getEnvironment("master");
 
-	for (const image of images) {
-		const [uploadedAsset, aiResponse] = await Promise.allSettled([
-			uploadAssetToContentful({
-				image,
-				environment,
-			}),
-			openai.chat.completions.create(getImagePrompt({ imageUrl: image.url })),
-		]);
+	await Promise.allSettled(
+		images.map(async (image) => {
+			const [uploadedAsset, aiResponse] = await Promise.allSettled([
+				uploadAssetToContentful({
+					image,
+					environment,
+				}),
+				openai.chat.completions.create(getImagePrompt({ imageUrl: image.url })),
+			]);
 
-		if (uploadedAsset.status === "rejected") {
-			console.error("Error uploading asset: ", uploadedAsset.reason);
-			continue;
-		}
+			if (uploadedAsset.status === "rejected") {
+				console.error("Error uploading asset: ", uploadedAsset.reason);
+				return;
+			}
 
-		let jsonResponse: OpenAIResponse | undefined;
+			let jsonResponse: OpenAIResponse | undefined;
 
-		if (aiResponse.status === "fulfilled") {
-			const aiContent = aiResponse.value.choices[0].message.content;
-			jsonResponse = aiContent && JSON.parse(aiContent);
-		}
+			if (aiResponse.status === "fulfilled") {
+				const aiContent = aiResponse.value.choices[0].message.content;
+				jsonResponse = aiContent && JSON.parse(aiContent);
+			}
 
-		await environment.createEntry("pet", {
-			fields: getEntryFields({
-				assetId: uploadedAsset.value.sys.id,
-				aiResponse: jsonResponse,
-				commonFields,
-			}),
-		});
-	}
+			await environment.createEntry("pet", {
+				fields: getEntryFields({
+					assetId: uploadedAsset.value.sys.id,
+					aiResponse: jsonResponse,
+					commonFields,
+				}),
+			});
+		})
+	);
 
 	return [];
 }
