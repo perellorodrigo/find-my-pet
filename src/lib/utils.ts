@@ -1,30 +1,31 @@
-import { type ClassValue, clsx } from "clsx";
+import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { PetResponse, filterableFields } from "./types";
+
+import { filterableFields, PetResponse } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
-	return twMerge(clsx(inputs));
+    return twMerge(clsx(inputs));
 }
 
 export function getFiltersFromResults(items: PetResponse["items"]) {
-	return items.reduce<Record<string, string[]>>((acc, item) => {
-		const fields = item.fields;
+    return items.reduce<Record<string, string[]>>((acc, item) => {
+        const fields = item.fields;
 
-		for (const field of filterableFields) {
-			const value = fields[field];
+        for (const field of filterableFields) {
+            const value = fields[field];
 
-			if (!value) {
-				continue;
-			}
+            if (!value) {
+                continue;
+            }
 
-			if (!acc[field]) {
-				acc[field] = [value];
-				continue;
-			}
+            if (!acc[field]) {
+                acc[field] = [value];
+                continue;
+            }
 
-			if (!acc[field].includes(value)) acc[field].push(value);
-		}
+            if (!acc[field].includes(value)) acc[field].push(value);
+        }
 
-		return acc;
-	}, {});
+        return acc;
+    }, {});
 }
