@@ -105,7 +105,7 @@ const Dropzone = React.forwardRef<HTMLDivElement, DropzoneProps>(
 							accept={allowedTypes}
 						/>
 					</div>
-					<div className="flex items-center justify-center gap-3 p-4 relative">
+					<div className="flex items-center justify-center gap-3 p-4 relative flex-wrap">
 						{previewUrls.map((url) => (
 							<Image src={url} width={100} height={100} key={url} alt="" />
 						))}

@@ -30,6 +30,8 @@ const ACCEPTED_IMAGE_TYPES = [
 	"image/webp",
 ];
 
+const BATCH_SIZE = 5;
+
 const MAX_FILE_SIZE = 10000000;
 const FormSchema = z.object({
 	contactDetails: z.string(),
@@ -91,6 +93,12 @@ async function uploadToS3({
 	}
 }
 
+function assertAllFulfilled<T>(
+	result: PromiseSettledResult<T>[]
+): result is PromiseFulfilledResult<T>[] {
+	return result.some((r) => r.status === "rejected");
+}
+
 export default function BatchUploader() {
 	const uploadIntentMutation = useMutation({
 		mutationFn: createBatchUploadIntent,
@@ -137,6 +145,12 @@ export default function BatchUploader() {
 		shouldUnregister: false,
 		shouldUseNativeValidation: false,
 		resolver: zodResolver(FormSchema),
+		defaultValues: {
+			contactDetails: "",
+			address: "",
+			additionalInfo: "",
+			apiKey: "",
+		},
 	});
 
 	async function handleOnDrop(files: FileList | null) {
@@ -180,63 +194,77 @@ export default function BatchUploader() {
 			})),
 		});
 
-		const rejectedIntents: {
-			index: number;
-			reason: any;
-		}[] = [];
+		if (!assertAllFulfilled(result)) {
+			const rejectedIntents = result.reduce<
+				{
+					fileName: string;
+					reason: string;
+				}[]
+			>((acc, response, index) => {
+				if (response.status === "rejected") {
+					acc.push({
+						fileName: filesArray[index].name,
+						reason: response.reason,
+					});
+				}
 
-		for (const [index, response] of result.entries()) {
-			if (response.status === "rejected") {
-				rejectedIntents.push({
-					index,
-					reason: response.reason,
-				});
-			}
-		}
-
-		if (rejectedIntents.length > 0) {
-			form.setError("files", {
-				message: `Error creating upload intent for files: ${rejectedIntents.map((f) => filesArray[f.index].name).join(", ")}`,
-				type: "validate",
-			});
+				return acc;
+			}, []);
 
 			console.error("Error creating upload intent for files:", rejectedIntents);
-			return;
+
+			form.setError("files", {
+				message: `Error creating upload intent for files: \n${rejectedIntents.map((f) => `${f.fileName} : ${f.reason}`).join("\n")}`,
+				type: "validate",
+			});
 		}
 
-		// for all successful intents, upload the files to S3
-		for (const [index, response] of result.entries()) {
-			setProgress({
-				current: index - 0.5 + 1,
+		// Helper function to update progress state
+		const tickProgress = (newVal?: number) =>
+			setProgress((currentVal) => ({
+				current: newVal ?? (currentVal?.current || 0) + 0.5,
 				total: result.length,
-			});
+			}));
 
-			if (response.status === "fulfilled") {
-				const s3Result = await uploadS3Mutation.mutateAsync({
-					...response.value,
-					file: filesArray[index],
-				});
+		tickProgress(0);
 
-				setProgress({
-					current: index + 1,
-					total: result.length,
-				});
+		for (let i = 0; i < result.length; i += BATCH_SIZE) {
+			const batch = result.slice(i, i + BATCH_SIZE);
 
-				await uploadToContentfulMutation.mutateAsync({
-					apiKey,
-					additionalInfo,
-					address,
-					contactDetails,
-					images: [
-						{
-							contentLength: filesArray[index].size.toString(),
-							contentType: filesArray[index].type,
-							fileName: filesArray[index].name,
-							url: s3Result,
-						},
-					],
-				});
+			const batchResult = await Promise.allSettled(
+				batch.map(async (response, index) => {
+					if (response.status === "fulfilled") {
+						const s3Result = await uploadS3Mutation.mutateAsync({
+							...response.value,
+							file: filesArray[index],
+						});
+						tickProgress();
+
+						await uploadToContentfulMutation.mutateAsync({
+							apiKey,
+							additionalInfo,
+							address,
+							contactDetails,
+							images: [
+								{
+									contentLength: filesArray[index].size.toString(),
+									contentType: filesArray[index].type,
+									fileName: filesArray[index].name,
+									url: s3Result,
+								},
+							],
+						});
+
+						tickProgress();
+					}
+				})
+			);
+
+			if (batchResult.some((r) => r.status === "rejected")) {
+				console.error("Error uploading batch", batchResult);
 			}
+
+			tickProgress(i + batch.length);
 		}
 
 		form.resetField("files");

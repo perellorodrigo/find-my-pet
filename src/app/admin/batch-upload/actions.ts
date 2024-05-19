@@ -119,7 +119,7 @@ function getEntryFields({
 	commonFields,
 }: {
 	assetId: string;
-	aiResponse: OpenAIResponse;
+	aiResponse: OpenAIResponse | undefined;
 	commonFields: Pick<
 		UploadToContentfulParams,
 		"contactDetails" | "address" | "additionalInfo"
@@ -168,19 +168,19 @@ function getEntryFields({
 			],
 		},
 		species: {
-			"en-US": (aiResponse.species || "").trim(),
+			"en-US": (aiResponse?.species || "Vira Lata").trim(),
 		},
 		breed: {
-			"en-US": (aiResponse.breed || "").trim(),
+			"en-US": (aiResponse?.breed || "").trim(),
 		},
 		color: {
-			"en-US": (aiResponse.color || "").trim(),
+			"en-US": (aiResponse?.color || "").trim(),
 		},
 		description: {
 			"en-US": buildContentfulRichTextBlocks(description),
 		},
 		size: {
-			"en-US": (aiResponse.size || "").trim(),
+			"en-US": (aiResponse?.size || "").trim(),
 		},
 		gender: {
 			"en-US": "indefinido",
@@ -209,7 +209,7 @@ export async function uploadToContentful({
 	const environment = await client.getEnvironment("master");
 
 	for (const image of images) {
-		const [uploadedAsset, aiResponse] = await Promise.all([
+		const [uploadedAsset, aiResponse] = await Promise.allSettled([
 			uploadAssetToContentful({
 				image,
 				environment,
@@ -217,20 +217,21 @@ export async function uploadToContentful({
 			openai.chat.completions.create(getImagePrompt({ imageUrl: image.url })),
 		]);
 
-		const aiContent = aiResponse.choices[0].message.content;
-
-		if (!aiContent) {
-			console.error("No content found in AI response for: ", image);
+		if (uploadedAsset.status === "rejected") {
+			console.error("Error uploading asset: ", uploadedAsset.reason);
 			continue;
 		}
 
-		console.log("AI Content: ", aiContent);
+		let jsonResponse: OpenAIResponse | undefined;
 
-		const jsonResponse: OpenAIResponse = JSON.parse(aiContent);
+		if (aiResponse.status === "fulfilled") {
+			const aiContent = aiResponse.value.choices[0].message.content;
+			jsonResponse = aiContent && JSON.parse(aiContent);
+		}
 
 		await environment.createEntry("pet", {
 			fields: getEntryFields({
-				assetId: uploadedAsset.sys.id,
+				assetId: uploadedAsset.value.sys.id,
 				aiResponse: jsonResponse,
 				commonFields,
 			}),
