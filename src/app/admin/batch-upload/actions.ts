@@ -1,7 +1,7 @@
 "use server";
 
 import { S3Client } from "@aws-sdk/client-s3";
-import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
+import { createPresignedPost, PresignedPost } from "@aws-sdk/s3-presigned-post";
 import { Entry } from "contentful";
 import {
     createClient as createContentfulManagementClient,
@@ -15,6 +15,7 @@ import {
     buildContentfulRichTextBlocks,
 } from "@/lib/buildContentfulRichTextBlocks";
 import { getImagePrompt, OpenAIResponse } from "@/lib/image-ai";
+import { verifyAdmin } from "@/lib/supabase/verify-admin";
 import type { PetSkeleton } from "@/lib/types";
 
 const openai = new OpenAI({
@@ -28,39 +29,17 @@ type BatchUploadRequest = {
     }[];
 };
 
-// STEPS:
-// 1 - Upload images to S3
-// 2 - Run AI to generate description
-// 3 - Save the entry in Contentful
-export async function createBatchUploadIntent({ files }: BatchUploadRequest) {
-    const BUCKET_NAME = process.env.AWS_BUCKET_NAME;
-    if (!BUCKET_NAME) {
-        throw new Error("No Bucket name provided.");
-    }
+type ErrorOrResult<T> =
+    | {
+          error: null;
+          result: T;
+      }
+    | {
+          error: string;
+          result?: undefined;
+      };
 
-    const client = new S3Client({ region: process.env.AWS_REGION });
-
-    const result = await Promise.allSettled(
-        files.map(async ({ contentType, filename }) => {
-            const { url, fields } = await createPresignedPost(client, {
-                Bucket: BUCKET_NAME,
-                Key: uuidv4(),
-                Conditions: [
-                    ["content-length-range", 0, 10485760], // up to 10 MB
-                    ["starts-with", "$Content-Type", contentType],
-                ],
-                Fields: {
-                    acl: "public-read",
-                    "Content-Type": contentType,
-                },
-            });
-
-            return { url, fields };
-        })
-    );
-
-    return result;
-}
+type BatchUploadResponse = ErrorOrResult<PresignedPost[]>;
 
 type ImageUpload = {
     url: string;
@@ -70,7 +49,6 @@ type ImageUpload = {
 };
 
 type UploadToContentfulParams = {
-    apiKey: string;
     contactDetails: string;
     address: string;
     additionalInfo: string;
@@ -80,7 +58,14 @@ type UploadToContentfulParams = {
 
 type PetFields = Entry<PetSkeleton>["fields"];
 
+function assertAllFulfilled<T>(
+    result: PromiseSettledResult<T>[]
+): result is PromiseFulfilledResult<T>[] {
+    return result.every((r) => r.status === "fulfilled");
+}
+
 const CONTENTFUL_SPACE_ID = process.env.CONTENTFUL_SPACE_ID;
+const CONTENTFUL_MANAGEMENT_API_KEY = process.env.CONTENTFUL_MANAGEMENT_API_KEY;
 
 async function uploadAssetToContentful({
     image,
@@ -194,18 +179,101 @@ function getEntryFields({
     return entryFields;
 }
 
+// STEPS:
+// 1 - Upload images to S3
+// 2 - Run AI to generate description
+// 3 - Save the entry in Contentful
+export async function createBatchUploadIntent({
+    files,
+}: BatchUploadRequest): Promise<BatchUploadResponse> {
+    const isAdmin = await verifyAdmin();
+    if (!isAdmin)
+        return {
+            error: "Unauthorized",
+        };
+
+    const BUCKET_NAME = process.env.AWS_BUCKET_NAME;
+    if (!BUCKET_NAME) {
+        console.error("Missing AWS_BUCKET_NAME");
+        return {
+            error: "Server Error",
+        };
+    }
+
+    const client = new S3Client({ region: process.env.AWS_REGION });
+
+    const result = await Promise.allSettled(
+        files.map(async ({ contentType, filename }) => {
+            const { url, fields } = await createPresignedPost(client, {
+                Bucket: BUCKET_NAME,
+                Key: uuidv4(),
+                Conditions: [
+                    ["content-length-range", 0, 10485760], // up to 10 MB
+                    ["starts-with", "$Content-Type", contentType],
+                ],
+                Fields: {
+                    acl: "public-read",
+                    "Content-Type": contentType,
+                },
+            });
+
+            return { url, fields };
+        })
+    );
+
+    if (!assertAllFulfilled(result)) {
+        const rejectedIntents = result.reduce<
+            {
+                fileName: string;
+                reason: string;
+            }[]
+        >((acc, response, index) => {
+            if (response.status === "rejected") {
+                acc.push({
+                    fileName: files[index].filename,
+                    reason: response.reason,
+                });
+            }
+
+            return acc;
+        }, []);
+
+        console.error(
+            "Error creating upload intent for files:",
+            rejectedIntents
+        );
+
+        return {
+            error: `Error creating upload intent for files: \n${rejectedIntents.map((f) => `${f.fileName} : ${f.reason}`).join("\n")}`,
+        };
+    }
+
+    return {
+        result: result.map((r) => r.value),
+        error: null,
+    };
+}
+
 export async function uploadToContentful({
-    apiKey,
     images,
     ...commonFields
-}: UploadToContentfulParams): Promise<[]> {
+}: UploadToContentfulParams): Promise<ErrorOrResult<{}>> {
+    const isAdmin = await verifyAdmin();
+    if (!isAdmin)
+        return {
+            error: "Unauthorized",
+        };
+
     // get from api call since we are not protecting the page
-    if (!apiKey || !CONTENTFUL_SPACE_ID) {
-        throw new Error("Missing Contentful Management API Key OR Space ID.");
+    if (!CONTENTFUL_MANAGEMENT_API_KEY || !CONTENTFUL_SPACE_ID) {
+        console.error("Missing Contentful Management API Key OR Space ID.");
+        return {
+            error: "Server Error",
+        };
     }
 
     const managementClient = createContentfulManagementClient({
-        accessToken: apiKey,
+        accessToken: CONTENTFUL_MANAGEMENT_API_KEY,
     });
 
     const client = await managementClient.getSpace(CONTENTFUL_SPACE_ID);
@@ -246,5 +314,8 @@ export async function uploadToContentful({
         })
     );
 
-    return [];
+    return {
+        error: null,
+        result: {},
+    };
 }

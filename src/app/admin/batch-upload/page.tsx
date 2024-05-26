@@ -58,7 +58,6 @@ const FormSchema = z.object({
                 ),
             ".jpg, .jpeg, .png and .webp files are accepted."
         ),
-    apiKey: z.string(),
 });
 
 type FormValues = z.infer<typeof FormSchema>;
@@ -91,12 +90,6 @@ async function uploadToS3({
     } else {
         throw new Error("S3 Upload Error");
     }
-}
-
-function assertAllFulfilled<T>(
-    result: PromiseSettledResult<T>[]
-): result is PromiseFulfilledResult<T>[] {
-    return result.every((r) => r.status === "fulfilled");
 }
 
 function isPromiseFulfilled<T>(
@@ -155,7 +148,6 @@ export default function BatchUploader() {
             contactDetails: "",
             address: "",
             additionalInfo: "",
-            apiKey: "",
         },
     });
 
@@ -189,46 +181,26 @@ export default function BatchUploader() {
         address,
         contactDetails,
         files,
-        apiKey,
     }: FormValues) => {
         const filesArray = Array.from(files);
 
-        const result = await uploadIntentMutation.mutateAsync({
+        const response = await uploadIntentMutation.mutateAsync({
             files: filesArray.map((file) => ({
                 contentType: file.type,
                 filename: file.name,
             })),
         });
 
-        if (!assertAllFulfilled(result)) {
-            const rejectedIntents = result.reduce<
-                {
-                    fileName: string;
-                    reason: string;
-                }[]
-            >((acc, response, index) => {
-                if (response.status === "rejected") {
-                    acc.push({
-                        fileName: filesArray[index].name,
-                        reason: response.reason,
-                    });
-                }
-
-                return acc;
-            }, []);
-
-            console.error(
-                "Error creating upload intent for files:",
-                rejectedIntents
-            );
-
+        if (response.error !== null) {
             form.setError("files", {
-                message: `Error creating upload intent for files: \n${rejectedIntents.map((f) => `${f.fileName} : ${f.reason}`).join("\n")}`,
+                message: response.error,
                 type: "validate",
             });
 
             return;
         }
+
+        const result = response.result;
 
         // Helper function to update progress state
         const tickProgress = (newVal?: number) =>
@@ -249,7 +221,7 @@ export default function BatchUploader() {
                     const file = filesArray[actualIndex];
 
                     const fileUrl = await uploadS3Mutation.mutateAsync({
-                        ...response.value,
+                        ...response,
                         file,
                     });
 
@@ -266,8 +238,7 @@ export default function BatchUploader() {
             if (sucessfulBatch.length === 0) {
                 console.error("Error uploading batch", batchResult);
             } else {
-                await uploadToContentfulMutation.mutateAsync({
-                    apiKey,
+                const { error } = await uploadToContentfulMutation.mutateAsync({
                     additionalInfo,
                     address,
                     contactDetails,
@@ -280,6 +251,14 @@ export default function BatchUploader() {
                         })
                     ),
                 });
+
+                if (error) {
+                    console.error("Error uploading to contentful", error);
+                    form.setError("files", {
+                        message: `Error uploading to contentful: ${error}`,
+                        type: "validate",
+                    });
+                }
             }
 
             tickProgress(i + batch.length);
@@ -300,19 +279,6 @@ export default function BatchUploader() {
                     noValidate
                     autoComplete="off"
                 >
-                    <FormField
-                        control={form.control}
-                        name="apiKey"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>API Key</FormLabel>
-                                <FormControl>
-                                    <Input type="password" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
                     <FormField
                         control={form.control}
                         name="contactDetails"
