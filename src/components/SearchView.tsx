@@ -246,7 +246,7 @@ export function SearchView({
                     <Input
                         type="search"
                         enterKeyHint="search"
-                        placeholder="Pesquise por texto..."
+                        placeholder="pesquisar por texto..."
                         value={searchTerm}
                         onChange={handleSearch}
                         onKeyDown={(e) => {
@@ -254,7 +254,7 @@ export function SearchView({
                                 e.currentTarget?.blur?.();
                             }
                         }}
-                        className="grow text-md"
+                        className="grow text-md font-serif"
                     />
                 </div>
                 <div className="flex flex-wrap gap-2">

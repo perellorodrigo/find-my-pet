@@ -33,8 +33,11 @@ function ComboOptions({
     onSelect: (value: string) => void;
 }) {
     return (
-        <Command>
-            <CommandInput placeholder={placeholder} className="text-md" />
+        <Command className="">
+            <CommandInput
+                placeholder={placeholder}
+                className="text-md font-serif"
+            />
             <CommandList>
                 <CommandEmpty>Sem resultados.</CommandEmpty>
                 <CommandGroup>
@@ -92,7 +95,7 @@ export function ComboBox({
                         variant="outline"
                         role="combobox"
                         aria-expanded={open}
-                        className="justify-between w-full"
+                        className="justify-between w-full font-serif"
                     >
                         {label}
                         <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
