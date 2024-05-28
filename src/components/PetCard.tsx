@@ -26,7 +26,7 @@ function CardBasicInfo({ item }: { item: PetResponseItem }) {
 
         return (
             <div className="inline-flex items-center" key={value}>
-                <p className="text-sm break-all font-light text-primary">
+                <p className="text-sm break-all font-light">
                     <span className="font-semibold">
                         {LABEL_VALUES[field]}:{" "}
                     </span>

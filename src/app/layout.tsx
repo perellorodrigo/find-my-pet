@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter as FontSans } from "next/font/google";
+import { Inter as FontSans, Bree_Serif as FontSerif } from "next/font/google";
 
 import "./globals.css";
 
@@ -12,6 +12,12 @@ import Providers from "@/components/react-query/ReactQueryClientProvider";
 const fontSans = FontSans({
     subsets: ["latin"],
     variable: "--font-sans",
+});
+
+const fontSerif = FontSerif<"--font-serif">({
+    subsets: ["latin"],
+    variable: "--font-serif",
+    weight: "400",
 });
 
 export const metadata: Metadata = {
@@ -28,8 +34,9 @@ export default function RootLayout({
         <html lang="en">
             <body
                 className={cn(
-                    "min-h-screen bg-violet-100 font-sans antialiased",
-                    fontSans.variable
+                    "min-h-screen font-sans antialiased",
+                    fontSans.variable,
+                    fontSerif.variable
                 )}
             >
                 <Providers>{children} </Providers>

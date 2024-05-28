@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 
 const HEADING_CLASSES = {
     // class="
-    h1: `text-3xl font-semibold leading-relaxed tracking-wide`,
+    h1: `text-3xl font-semibold leading-relaxed tracking-wide font-serif`,
     h2: "text-xl",
     h3: "text-lg",
     h4: "text-lg",

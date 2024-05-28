@@ -1,6 +1,6 @@
 import type { Config } from "tailwindcss";
 
-const { fontFamily } = require("tailwindcss/defaultTheme");
+import { fontFamily } from "tailwindcss/defaultTheme"
 
 const config = {
     darkMode: ["class"],
@@ -26,10 +26,11 @@ const config = {
             },
         },
         extend: {
+            fontFamily: {
+                sans: ["var(--font-sans)", ...fontFamily.sans].join(", "),
+                serif: ["var(--font-serif)", ...fontFamily.serif].join(", "),
+            },
             colors: {
-                fontFamily: {
-                    sans: ["var(--font-sans)", ...fontFamily.sans].join(", "),
-                },
                 border: "hsl(var(--border))",
                 input: "hsl(var(--input))",
                 ring: "hsl(var(--ring))",
