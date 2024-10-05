@@ -1,3 +1,9 @@
+# About
+
+Repository for: https://www.encontreseupetcanoas.com/
+
+I've developed this website to help pet owners find their lost pets that were rescued by volunteers and sheltered in multiple different places during the floods in my hometown in Brazil. Created with NextJS, utilizing Contentful as CMS and leveraging Shadcn UI components.
+
 This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
 ## Getting Started
